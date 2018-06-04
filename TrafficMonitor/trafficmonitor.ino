@@ -50,7 +50,7 @@ void setup() {
 void loop() {
   curTime = millis();
 
-  //every second
+  //every 1000 ms
   if (curTime - prevTime >= 1000) {
     prevTime = curTime;
 
