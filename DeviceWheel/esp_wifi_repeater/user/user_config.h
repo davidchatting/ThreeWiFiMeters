@@ -9,10 +9,10 @@
 #define WIFI_SSID            "ssid"
 #define WIFI_PASSWORD        "password"
 
-#define WIFI_AP_SSID         "MyAP"
+#define WIFI_AP_SSID         "Device Wheel"
 #define WIFI_AP_PASSWORD     "none"
 
-#define MAX_CLIENTS	     8
+#define MAX_CLIENTS	     1
 #define MAX_DHCP	     8
 
 //
@@ -51,7 +51,7 @@
 //
 // Define this to support a daily traffic limit
 //
-#define DAILY_LIMIT         1
+#define DAILY_LIMIT         0
 
 //
 // Define this to support the setting of the WiFi PHY mode
@@ -73,7 +73,7 @@
 // Define this if you want to have access to the config console via TCP.
 // Ohterwise only local access via serial is possible
 //
-#define REMOTE_CONFIG      1
+#define REMOTE_CONFIG      0
 #define CONSOLE_SERVER_PORT  7777
 
 //
@@ -99,7 +99,7 @@
 // Packets are mirrored in pcap format to the given port.
 // CAUTION: this might be a privacy issue!!!
 //
-#define REMOTE_MONITORING  1
+#define REMOTE_MONITORING  0
 
 #define MONITOR_BUFFER_SIZE 0x3c00
 
@@ -113,7 +113,7 @@
 // Here the MQTT stuff
 //
 // Define this if you want to have it work as a MQTT client
-#define MQTT_CLIENT 	1	
+#define MQTT_CLIENT 	0
 
 #define MQTT_BUF_SIZE   1024
 #define MQTT_KEEPALIVE    120  /*seconds*/
