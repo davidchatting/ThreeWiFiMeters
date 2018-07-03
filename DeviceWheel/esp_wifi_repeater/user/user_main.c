@@ -103,6 +103,9 @@ struct netif* eth_netif;
 uint8_t remote_console_disconnect;
 struct espconn *currentconn;
 
+void ICACHE_FLASH_ATTR onStationJoined(){
+    os_printf("onStationJoined\n");
+}
 void ICACHE_FLASH_ATTR user_set_softap_wifi_config(void);
 void ICACHE_FLASH_ATTR user_set_softap_ip_config(void);
 void ICACHE_FLASH_ATTR user_set_station_config(void);
@@ -209,7 +212,7 @@ err_t ICACHE_FLASH_ATTR my_input_ap (struct pbuf *p, struct netif *inp) {
     Bytes_in += p->tot_len;
     Packets_in++;
     
-    //os_printf("<");
+    os_printf("<%d\n",p->tot_len);
     
     return orig_input_ap (p, inp);
 }
@@ -255,7 +258,7 @@ err_t ICACHE_FLASH_ATTR my_output_ap (struct netif *outp, struct pbuf *p) {
     Bytes_out += p->tot_len;
     Packets_out++;
     
-    //os_printf(">");
+    os_printf(">%d\n",p->tot_len);
     
     return orig_output_ap (outp, p);
 }
@@ -2416,7 +2419,7 @@ void wifi_handle_event_cb(System_Event_t *evt)
         case EVENT_SOFTAPMODE_STACONNECTED:
             os_sprintf(mac_str, MACSTR, MAC2STR(evt->event_info.sta_connected.mac));
             os_printf("station: %s join, AID = %d\r\n", mac_str, evt->event_info.sta_connected.aid);
-            //onStationJoined();
+            onStationJoined();
 #ifdef MQTT_CLIENT
 #endif
             ip_addr_t ap_ip = config.network_addr;
@@ -2885,9 +2888,3 @@ void ICACHE_FLASH_ATTR user_init()
     //Start task
     system_os_task(user_procTask, user_procTaskPrio, user_procTaskQueue, user_procTaskQueueLen);
 }
-
-/*
-void ICACHE_FLASH_ATTR onStationJoined(){
-    os_printf("onStationJoined\n");
-}
-*/

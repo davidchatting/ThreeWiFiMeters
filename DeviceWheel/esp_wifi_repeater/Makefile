@@ -27,7 +27,7 @@ SDK_BASE	?= $(BUILD_AREA)/esp-open-sdk/sdk
 
 # # esptool.py path and port
 ESPTOOL		?= $(BUILD_AREA)/esp-open-sdk/esptool/esptool.py
-ESPPORT		?= /dev/tty.wchusbserial1420
+ESPPORT		?= /dev/tty.wchusbserial1460
 ESPTOOLBAUD	?= 115200
 ESPTOOLOPTS	= -ff 40m -fm dio -fs 32m
 
