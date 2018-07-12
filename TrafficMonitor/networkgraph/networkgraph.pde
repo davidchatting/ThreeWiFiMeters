@@ -18,7 +18,7 @@
     frameRate(4);
 
     println(Serial.list());
-    myPort = new Serial(this, "/dev/cu.SLAB_USBtoUART", 9600);
+    myPort = new Serial(this, "/dev/cu.wchusbserial1410", 9600);
     myPort.bufferUntil('\n');
 
     background(0);
@@ -70,6 +70,7 @@
     } while(!finished);
     
     stroke(whiteValue);
+    //noStroke();
     fill(0);
     ellipse(width/2, height/2, panelWidth, panelWidth);
   }
