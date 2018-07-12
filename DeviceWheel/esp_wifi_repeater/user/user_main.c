@@ -62,6 +62,11 @@ os_event_t    user_procTaskQueue[user_procTaskQueueLen];
 static void user_procTask(os_event_t *events);
 
 static os_timer_t ptimer;
+LOCAL os_timer_t stepper_timer;
+LOCAL os_timer_t flow_timer;
+
+uint8 stepper_pattern;
+bool stepper_direction;
 
 int32_t ap_watchdog_cnt;
 int32_t client_watchdog_cnt;
@@ -117,6 +122,47 @@ void ICACHE_FLASH_ATTR to_console(char *str) {
 void ICACHE_FLASH_ATTR mac_2_buff(char *buf, uint8_t mac[6]) {
     os_sprintf(buf, "%02x:%02x:%02x:%02x:%02x:%02x",
                mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+}
+
+LOCAL void ICACHE_FLASH_ATTR stepper_cb(void *arg) {
+    //write stepper_pattern to GPIO
+    easygpio_outputSet (5,  (stepper_pattern & 0x01)>>0);
+    easygpio_outputSet (4,  (stepper_pattern & 0x02)>>1);
+    easygpio_outputSet (14, (stepper_pattern & 0x04)>>2);
+    easygpio_outputSet (12, (stepper_pattern & 0x08)>>3);
+    
+    if(stepper_pattern != 0){
+        if(stepper_direction){
+            stepper_pattern = stepper_pattern << 1;
+            if(stepper_pattern == 0 || stepper_pattern == 16) stepper_pattern=1;
+        }
+        else {
+            stepper_pattern = stepper_pattern >> 1;
+            if(stepper_pattern == 0) stepper_pattern = 8;
+        }
+    }
+    
+    //os_printf("%d\r\n",stepper_pattern);
+}
+
+sint32 flowSample;
+LOCAL void ICACHE_FLASH_ATTR flow_cb(void *arg) {
+    //os_printf("%d\r\n",flowSample);
+    if(flowSample == 0){
+        //no activity
+        stepper_pattern = 0;
+    }
+    else if(flowSample > 0){
+        //downloading
+        stepper_direction = true;
+        if(stepper_pattern == 0) stepper_pattern = 1;
+    }
+    else {
+        //uploading
+        stepper_direction = false;
+        if(stepper_pattern == 0) stepper_pattern = 8;
+    }
+    flowSample = 0;
 }
 
 #ifdef MQTT_CLIENT
@@ -212,7 +258,8 @@ err_t ICACHE_FLASH_ATTR my_input_ap (struct pbuf *p, struct netif *inp) {
     Bytes_in += p->tot_len;
     Packets_in++;
     
-    os_printf("<%d\n",p->tot_len);
+    //os_printf("<%d\n",p->tot_len);
+    flowSample += p->tot_len;
     
     return orig_input_ap (p, inp);
 }
@@ -258,7 +305,8 @@ err_t ICACHE_FLASH_ATTR my_output_ap (struct netif *outp, struct pbuf *p) {
     Bytes_out += p->tot_len;
     Packets_out++;
     
-    os_printf(">%d\n",p->tot_len);
+    //os_printf(">%d\n",p->tot_len);
+    flowSample -= p->tot_len;
     
     return orig_output_ap (outp, p);
 }
@@ -2881,10 +2929,23 @@ void ICACHE_FLASH_ATTR user_init()
 #ifdef DAILY_LIMIT
 #endif
     
+    flowSample = 0;
+    os_timer_disarm(&flow_timer);
+    os_timer_setfn(&flow_timer, (os_timer_func_t *)flow_cb, (void *)0);
+    os_timer_arm(&flow_timer, 200, 1);
+    
+    easygpio_pinMode(5, EASYGPIO_NOPULL, EASYGPIO_OUTPUT);
+    easygpio_pinMode(4, EASYGPIO_NOPULL, EASYGPIO_OUTPUT);
+    easygpio_pinMode(14, EASYGPIO_NOPULL, EASYGPIO_OUTPUT);
+    easygpio_pinMode(12, EASYGPIO_NOPULL, EASYGPIO_OUTPUT);
+    
+    os_timer_disarm(&stepper_timer);
+    os_timer_setfn(&stepper_timer, (os_timer_func_t *)stepper_cb, (void *)0);
+    os_timer_arm(&stepper_timer, 3, 1);
+    
     // Start the timer
     os_timer_setfn(&ptimer, timer_func, 0);
-    os_timer_arm(&ptimer, 500, 0);
-    
+    os_timer_arm(&ptimer, 500, 0);  //void os_timer_arm(ETSTimer  *ptimer,  uint32_t  milliseconds, bool repeat_flag);
     //Start task
     system_os_task(user_procTask, user_procTaskPrio, user_procTaskQueue, user_procTaskQueueLen);
 }
