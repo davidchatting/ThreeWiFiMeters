@@ -12,7 +12,7 @@
 #define WIFI_AP_SSID         "Device Wheel"
 #define WIFI_AP_PASSWORD     "none"
 
-#define MAX_CLIENTS	     1
+#define MAX_CLIENTS	     3
 #define MAX_DHCP	     8
 
 //
