@@ -13,9 +13,9 @@ AccelStepper stepper(HALFSTEP, motorPin1, motorPin3, motorPin2, motorPin4);
 void setup() {
   Serial.begin(115200);
   
-  stepper.setMaxSpeed(1000.0);
-  stepper.setAcceleration(1000.0);
-  stepper.setSpeed(500);
+  stepper.setMaxSpeed(10000.0);
+  stepper.setAcceleration(10000.0);
+  stepper.setSpeed(10000);
 }
 
 void loop() {
