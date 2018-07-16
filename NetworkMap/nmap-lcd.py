@@ -1,3 +1,4 @@
+import os
 import nmap
 import time
 import socket
@@ -8,6 +9,7 @@ import subprocess
 import _thread
 
 import pygame, sys
+import math
 
 from numpy import ndarray 
 from pygame.locals import *
@@ -18,6 +20,7 @@ DeviceList = ndarray((256,),bool)
 ActivePair = [-1,-1]
 
 nm = nmap.PortScanner()             # instantiate nmap.PortScanner object
+screen = None
 
 def getipaddress():
     return([l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0])
@@ -101,7 +104,10 @@ def measurelinkquality():
 #     return
 
 def drawDisplay():
-    DISPLAY.fill((0,0,0))
+    global screen
+    screen.fill((0,0,0))
+    
+    #pygame.draw.arc(screen, (255,255,255), (50,50,100,100), math.radians(0), math.radians(90), 1)
 
     for n in range(0, 255):
         if DeviceList[n]==True:
@@ -145,11 +151,12 @@ def drawDevice(n):
     return
 
 def drawPixel(x,y):
+    global screen
     print("%i x %i  ", x, y)
 
     # display.point((y,x), fill=1)
     RED=(255,0,0)
-    pygame.draw.rect(DISPLAY,RED,(x*20,y*20,20,20))
+    pygame.draw.rect(screen,RED,(x*20,y*20,20,20))
 
     return
 
@@ -180,6 +187,37 @@ def setAllDevices(value):
         DeviceList[n]=value
     return
 
+def initDisplay():
+    disp_no = os.getenv("DISPLAY")
+    if disp_no:
+        print("I'm running under X display = {0}".format(disp_no))
+
+    # Check which frame buffer drivers are available
+    # Start with fbcon since directfb hangs with composite output
+    drivers = ['fbcon', 'directfb', 'svgalib']
+    found = False
+    for driver in drivers:
+        # Make sure that SDL_VIDEODRIVER is set
+        if not os.getenv('SDL_VIDEODRIVER'):
+            os.putenv('SDL_VIDEODRIVER', driver)
+        try:
+            pygame.display.init()
+        except pygame.error:
+            print('Driver: {0} failed.'.format(driver))
+            continue
+        found = True
+        break
+
+    if not found:
+        raise Exception('No suitable video driver found!')
+
+    screen_size = (pygame.display.Info().current_w, pygame.display.Info().current_h)
+    print("Framebuffer size: %d x %d" % (screen_size[0], screen_size[1]))
+    global screen
+    screen = pygame.display.set_mode(screen_size, pygame.FULLSCREEN)
+
+    return
+
 def main():
     setAllDevices(False)
     print(getipaddress())
@@ -205,7 +243,7 @@ def main():
 try:
     pygame.init()
     pygame.mouse.set_visible(False)
-    DISPLAY=pygame.display.set_mode( ( 320, 320 ), pygame.FULLSCREEN )
+    initDisplay()
     main()
 except KeyboardInterrupt:
     exit()
