@@ -13,10 +13,14 @@ def PacketHandler(packet) :
 
 	# if packet has 802.11 layer, and type of packet is Data frame
 	if packet.haslayer(Dot11):
-		# if packet.type == 2:
-		# 	if packet.addr3 == apMacAddress :
-		# 		print("{}	{}".format(packet.addr3, packet.len))
-		# 		#packet.show()
+		dot11_layer=packet.getlayer(Dot11)
+
+
+		if packet.type == 2:
+			#print ("dot11_layer.payload length: {}".format(dot11_layer.payload.name))
+			# if packet.addr3 == apMacAddress :
+				# print("{}	{}".format(packet.addr3, packet.len))
+				#packet.show()
 
 		if packet.type == 0 and packet.subtype == 8 :
 			#print ("AP MAC: {} with SSID: {}".format(packet.addr3, packet.info.decode()))

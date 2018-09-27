@@ -2,12 +2,17 @@
 import NetworkManager as NM
 #network devices - eg wlan0 - ensure that denyinterface set in dchpcd.conf otherwise will be unavailable
 #import wireless as Wireless
+import speedtest
 import subprocess
+import _thread
 import os
 import pygame
 import math
 import time
 from fontTools.ttLib import TTFont
+
+downMbps = 0
+upMbps = 0
 
 def initNetworkScan(device):
 	#for some reason have to construct command like this - doesn't work with individual arguments - denies that network interfaces exist!
@@ -19,13 +24,60 @@ def initNetworkScan(device):
 	return
 
 def parsetcpdump(packet):
-  print(packet)
-  
+	print(packet)
+
 	s = 'length'
 	lengthIndex = packet.find(s)
 	if(lengthIndex != -1):
 		length = int(packet[lengthIndex+len(s):].strip())
 		print(length)
+
+	return
+
+def initSpeedTest(intervalSec):
+	try:
+		_thread.start_new_thread(speedtestThread, (intervalSec,) )
+	except:
+		print ("Error: unable to start thread for speed test")
+
+def speedtestThread(intervalSec):
+	speedtestDueAtSec = 0
+
+	while True:
+		nowSec = time.time()
+		if(nowSec > speedtestDueAtSec):
+			speedtestDueAtSec = nowSec + intervalSec
+			doSpeedtest()
+		else:
+			time.sleep(intervalSec)
+
+	return
+
+def doSpeedtest():
+	global downMbps
+	global upMbps
+
+	print("start speed test")
+	#takes about 1 minute to complete
+	servers = []
+	# If you want to test against a specific server
+	# servers = [1234]
+
+	s = speedtest.Speedtest()
+	s.get_servers(servers)
+	s.get_best_server()
+	s.download()
+	s.upload()
+	s.results.share()
+
+	results_dict = s.results.dict()
+
+	
+	downMbps = results_dict['download'] / 1000000
+	upMbps = results_dict['upload'] / 1000000
+
+	print('{0:.2f}'.format(downMbps))
+	print('{0:.2f}'.format(upMbps))
 
 	return
 
@@ -47,7 +99,7 @@ def joinnetwork():
 
 	device = NM.NetworkManager.GetDeviceByIpIface('wlan1')
 
-	ssidToMonitor = 'BTHub4-W3MZ'   #will be obtained from UI using previous scan
+	ssidToMonitor = 'BTHub4-W3MZ' #will be obtained from UI using previous scan
 	password = '2426adca59'
 
 	#this step only required to ensure that the monitor is used on a network the user owns
@@ -56,122 +108,128 @@ def joinnetwork():
 	#if this is a 5Ghz network need to see if 2.4GHz also exists and spin up wlan0 if it does
 
 def initDisplay():
-    # disp_no = os.getenv("DISPLAY")
+# disp_no = os.getenv("DISPLAY")
 
-    # if disp_no:
-    #     print("I'm running under X display = {0}".format(disp_no))
+# if disp_no:
+# print("I'm running under X display = {0}".format(disp_no))
 
-    # # Check which frame buffer drivers are available
-    # # Start with fbcon since directfb hangs with composite output
-    # drivers = ['fbcon', 'directfb', 'svgalib']
-    # found = False
-    # for driver in drivers:
-    #     # Make sure that SDL_VIDEODRIVER is set
-    #     if not os.getenv('SDL_VIDEODRIVER'):
-    #         os.putenv('SDL_VIDEODRIVER', driver)
-    #     try:
-    #         pygame.display.init()
-    #     except pygame.error:
-    #         print('Driver: {0} failed.'.format(driver))
-    #         continue
-    #     found = True
-    #     break
+# # Check which frame buffer drivers are available
+# # Start with fbcon since directfb hangs with composite output
+# drivers = ['fbcon', 'directfb', 'svgalib']
+# found = False
+# for driver in drivers:
+# # Make sure that SDL_VIDEODRIVER is set
+# if not os.getenv('SDL_VIDEODRIVER'):
+# os.putenv('SDL_VIDEODRIVER', driver)
+# try:
+# pygame.display.init()
+# except pygame.error:
+# print('Driver: {0} failed.'.format(driver))
+# continue
+# found = True
+# break
 
-    # if not found:
-    #     raise Exception('No suitable video driver found!')
+# if not found:
+# raise Exception('No suitable video driver found!')
 
-    # screen_size = (pygame.display.Info().current_w, pygame.display.Info().current_h)
-    # global screen
-    # screen = pygame.display.set_mode(screen_size, pygame.FULLSCREEN)
+# screen_size = (pygame.display.Info().current_w, pygame.display.Info().current_h)
+# global screen
+# screen = pygame.display.set_mode(screen_size, pygame.FULLSCREEN)
 
-    global screen
-    screen = pygame.display.set_mode((320, 480), pygame.FULLSCREEN) 
-    
-    return
+	global screen
+	screen = pygame.display.set_mode((320, 480), pygame.FULLSCREEN) 
+
+	return
 
 def update(dt):
-  for event in pygame.event.get():
-    if event.type == QUIT:
-      pygame.quit()
-      sys.exit()
+	for event in pygame.event.get():
+		#if event.type == pygame.QUIT:
+		pygame.quit()
+		sys.exit()
 
 def draw(screen):
-  screen.fill((0, 0, 0))
+	screen.fill((0, 0, 0))
 
-  # timeMs = pygame.time.get_ticks()
-  # timeSec = int((timeMs/1000) % 60)
+	# timeMs = pygame.time.get_ticks()
+	# timeSec = int((timeMs/1000) % 60)
 
-  timeSec = time.localtime().tm_sec
+	timeSec = time.localtime().tm_sec
 
-  screenWidth = screen.get_width()
-  screenHeight = screen.get_height()
-  clockDiameter = min(screenWidth,screenHeight)-20
-  cx = int(screenWidth/2)
-  cy = int(screenWidth/2) #put it at the top of the screen
+	screenWidth = screen.get_width()
+	screenHeight = screen.get_height()
+	clockDiameter = min(screenWidth,screenHeight)-28
+	cx = int(screenWidth/2)
+	cy = int(screenHeight-(screenWidth/2)) + 10 #put it at the bottom of the screen
 
-  pygame.draw.circle(screen, (100,100,100), (cx, cy), int(clockDiameter/2), 1)
+	pygame.draw.circle(screen, (100,100,100), (cx, cy), int(clockDiameter/2), 1)
 
-  #pygame.draw.rect(screen,(255,255,255),(screenWidth/4,screenHeight/4,screenWidth/2,screenHeight/2))
-  da = (2 * math.pi)/60.0
-  
-  a = (timeSec*-da)+(math.pi/2);  #0 is at 12 o'clock
-  pygame.draw.arc(screen, (255,255,255), (cx-(clockDiameter/2), cy-(clockDiameter/2), clockDiameter, clockDiameter), a-(da/2), a+(da/2), 1)
+	#pygame.draw.rect(screen,(255,255,255),(screenWidth/4,screenHeight/4,screenWidth/2,screenHeight/2))
+	da = (2 * math.pi)/60.0
 
-  font = pygame.font.Font('HelveticaNeue-UltraLight.ttf', 22)
+	a = (timeSec*-da)+(math.pi/2);#0 is at 12 o'clock
+	pygame.draw.arc(screen, (255,255,255), (cx-(clockDiameter/2), cy-(clockDiameter/2), clockDiameter, clockDiameter), a-(da/2), a+(da/2), 1)
 
-  label = font.render("Some text!", 1, (255,255,255))
-  
-  text_rect = label.get_rect(center=(cx,cy))
+	font = pygame.font.Font('OpenSans-Light.ttf', 22)
 
-  screen.blit(label, text_rect)
+	global downMbps
+	global upMbps
+	text = '{0:.2f} {1:.2f}'.format(downMbps, upMbps)
+	label = font.render(text, 1, (255,255,255))
 
-  # gfxdraw.arc(screen, int((screenWidth/2)-(clockDiameter/2)), int((screenHeight/2)-(clockDiameter/2)), int(clockDiameter/2), int(math.degrees(a)), int(math.degrees(a+da)), (255,255,255))
+	text_rect = label.get_rect(center=(cx,cy))
+
+	screen.blit(label, text_rect)
+
+	# gfxdraw.arc(screen, int((screenWidth/2)-(clockDiameter/2)), int((screenHeight/2)-(clockDiameter/2)), int(clockDiameter/2), int(math.degrees(a)), int(math.degrees(a+da)), (255,255,255))
 
 
-    # int n = lastReadingAtSec + 1;  //draw the clock oldest values first
-    # boolean finished = false;
-    # do {
-    #   if(n == buffer.length) n = 0;
-       
-      
-    #   float l = (panelWidth/2)+map(buffer[n], 0, 100000, 0, maxValue);
-    #   l=min(l,maxValue);
-      
-    #   //if(v!=0) point(100+(v*sin(a+PI)),100+(v*cos(a+PI)));
-      
-    #   int t=lastReadingAtSec-n;
-    #   t=t<0?60+t:t;
-    #   t=(int)map(t,0,60,whiteValue,blackValue);
-    #   stroke(t, t, t);
-    #   arc(width/2, height/2, l*2, l*2, -a-HALF_PI, -a-HALF_PI+da, PIE);
-      
-    #   if(n==lastReadingAtSec) finished = true;
-    #   else ++n;
-    # } while(!finished);
+	# int n = lastReadingAtSec + 1;//draw the clock oldest values first
+	# boolean finished = false;
+	# do {
+	# if(n == buffer.length) n = 0;
+	 
 
-  pygame.display.flip()
+	# float l = (panelWidth/2)+map(buffer[n], 0, 100000, 0, maxValue);
+	# l=min(l,maxValue);
+
+	# //if(v!=0) point(100+(v*sin(a+PI)),100+(v*cos(a+PI)));
+
+	# int t=lastReadingAtSec-n;
+	# t=t<0?60+t:t;
+	# t=(int)map(t,0,60,whiteValue,blackValue);
+	# stroke(t, t, t);
+	# arc(width/2, height/2, l*2, l*2, -a-HALF_PI, -a-HALF_PI+da, PIE);
+
+	# if(n==lastReadingAtSec) finished = true;
+	# else ++n;
+	# } while(!finished);
+
+	pygame.display.flip()
 
 def main():
-  try:
-    # joinnetwork()
-    # initNetworkScan('eth0')
+	try:
+		# joinnetwork()
+		# initNetworkScan('eth0')
 
-    #initDisplay()
-    pygame.init()
-    pygame.mouse.set_visible(False)
+		initDisplay()
+		pygame.init()
+		pygame.mouse.set_visible(False)
 
-    fps = 60.0
-    clock = pygame.time.Clock()
+		initSpeedTest(900)	#900 seconds is a 15 minute interval
 
-    dt = 1/fps
+		fps = 60.0
+		clock = pygame.time.Clock()
 
-    while True:
-      update(dt)
-      #draw(screen)
+		dt = 1/fps
 
-      dt = clock.tick(fps)
-  except KeyboardInterrupt:
-    exit()
+		while True:
+			update(dt)
+			draw(screen)
+
+			dt = clock.tick(fps)
+
+	except KeyboardInterrupt:
+		exit()
 
 main()
 
@@ -195,26 +253,26 @@ main()
 # # Find a suitable device
 # ctype = conn.GetSettings()['connection']['type']
 # if ctype == 'vpn':
-#     for dev in NetworkManager.NetworkManager.GetDevices():
-#         if dev.State == NetworkManager.NM_DEVICE_STATE_ACTIVATED and dev.Managed:
-#             break
-#     else:
-#         print("No active, managed device found")
-#         sys.exit(1)
+# for dev in NetworkManager.NetworkManager.GetDevices():
+# if dev.State == NetworkManager.NM_DEVICE_STATE_ACTIVATED and dev.Managed:
+# break
 # else:
-#     dtype = {
-#         '802-11-wireless': NetworkManager.NM_DEVICE_TYPE_WIFI,
-#         '802-3-ethernet': NetworkManager.NM_DEVICE_TYPE_ETHERNET,
-#         'gsm': NetworkManager.NM_DEVICE_TYPE_MODEM,
-#     }.get(ctype,ctype)
-#     devices = NetworkManager.NetworkManager.GetDevices()
+# print("No active, managed device found")
+# sys.exit(1)
+# else:
+# dtype = {
+# '802-11-wireless': NetworkManager.NM_DEVICE_TYPE_WIFI,
+# '802-3-ethernet': NetworkManager.NM_DEVICE_TYPE_ETHERNET,
+# 'gsm': NetworkManager.NM_DEVICE_TYPE_MODEM,
+# }.get(ctype,ctype)
+# devices = NetworkManager.NetworkManager.GetDevices()
 
-#     for dev in devices:
-#         if dev.DeviceType == dtype and dev.State == NetworkManager.NM_DEVICE_STATE_DISCONNECTED:
-#             break
-#     else:
-#         print("No suitable and available %s device found" % ctype)
-#         sys.exit(1)
+# for dev in devices:
+# if dev.DeviceType == dtype and dev.State == NetworkManager.NM_DEVICE_STATE_DISCONNECTED:
+# break
+# else:
+# print("No suitable and available %s device found" % ctype)
+# sys.exit(1)
 
 # # And connect
 # NetworkManager.NetworkManager.ActivateConnection(conn, dev, "/")
