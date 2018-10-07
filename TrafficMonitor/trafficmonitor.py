@@ -10,35 +10,64 @@ import pygame
 import math
 import time
 from fontTools.ttLib import TTFont
+from pathlib import Path
+from numpy import interp
+from random import randint
 
 downMbps = 0
 upMbps = 0
 
-def initNetworkScan(device):
-	#for some reason have to construct command like this - doesn't work with individual arguments - denies that network interfaces exist!
-	tcpdump = subprocess.Popen(('sudo tcpdump -lnt -i ' + device), stdout=subprocess.PIPE, shell=True)
-	while True:
-		packet=tcpdump.stdout.readline().decode("utf-8")
-		parsetcpdump(packet)
+capFile = Path() / 'capture-01.cap'
+previousCapFileSize = 0
+
+trafficArray = [0] * 60
+
+screenWidth = 0
+screenHeight = 0
+outerClockDiameter = 0
+innerClockDiameter = 0
+
+whiteValue = 0
+blackValue = 0
+
+lastReadingAtSec = 0
+
+def initAirodump():
+	global capFile
+
+	if(capFile.exists()):
+		os.remove(str(capFile.resolve()))
+
+	#sudo airmon-ng start wlan1
+	cmd = 'sudo airodump-ng --bssid "CC:33:BB:BA:6F:A5" --channel 48 -w capture wlan1mon --write-interval 1 --output-format pcap'
+	airodump = subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 
 	return
 
-def parsetcpdump(packet):
-	print(packet)
+def getTraffic():
+	traffic = 0
 
-	s = 'length'
-	lengthIndex = packet.find(s)
-	if(lengthIndex != -1):
-		length = int(packet[lengthIndex+len(s):].strip())
-		print(length)
+	capFileSize = 0
 
-	return
+	global previousCapFileSize
+	global capFile
+
+	if(capFile.exists()):
+		capFileSize = capFile.stat().st_size
+		traffic = (capFileSize - previousCapFileSize)
+		previousCapFileSize = capFileSize
+
+	#print(traffic)
+
+	return traffic
 
 def initSpeedTest(intervalSec):
 	try:
 		_thread.start_new_thread(speedtestThread, (intervalSec,) )
 	except:
 		print ("Error: unable to start thread for speed test")
+
+	return
 
 def speedtestThread(intervalSec):
 	speedtestDueAtSec = 0
@@ -100,52 +129,82 @@ def joinnetwork():
 	device = NM.NetworkManager.GetDeviceByIpIface('wlan1')
 
 	ssidToMonitor = 'BTHub4-W3MZ' #will be obtained from UI using previous scan
-	password = '2426adca59'
+	password = ''
 
 	#this step only required to ensure that the monitor is used on a network the user owns
 	#Wireless.connect(ssid=ssidToMonitor, password=password)
 
 	#if this is a 5Ghz network need to see if 2.4GHz also exists and spin up wlan0 if it does
 
+	return
+
 def initDisplay():
-# disp_no = os.getenv("DISPLAY")
-
-# if disp_no:
-# print("I'm running under X display = {0}".format(disp_no))
-
-# # Check which frame buffer drivers are available
-# # Start with fbcon since directfb hangs with composite output
-# drivers = ['fbcon', 'directfb', 'svgalib']
-# found = False
-# for driver in drivers:
-# # Make sure that SDL_VIDEODRIVER is set
-# if not os.getenv('SDL_VIDEODRIVER'):
-# os.putenv('SDL_VIDEODRIVER', driver)
-# try:
-# pygame.display.init()
-# except pygame.error:
-# print('Driver: {0} failed.'.format(driver))
-# continue
-# found = True
-# break
-
-# if not found:
-# raise Exception('No suitable video driver found!')
-
-# screen_size = (pygame.display.Info().current_w, pygame.display.Info().current_h)
-# global screen
-# screen = pygame.display.set_mode(screen_size, pygame.FULLSCREEN)
-
 	global screen
 	screen = pygame.display.set_mode((320, 480), pygame.FULLSCREEN) 
+
+	global screenWidth
+	global screenHeight
+	global innerClockDiameter
+	global outerClockDiameter
+
+	global whiteValue
+	global blackValue
+
+	screenWidth = screen.get_width()
+	screenHeight = screen.get_height()
+	outerClockDiameter = min(screenWidth,screenHeight)-28
+	innerClockDiameter = outerClockDiameter/2
+
+	whiteValue = 200
+	blackValue = 15
 
 	return
 
 def update(dt):
+	global innerClockDiameter
+	global outerClockDiameter
+	global trafficArray
+	global lastReadingAtSec
+
+	sec = time.localtime().tm_sec
+	if(sec != lastReadingAtSec):
+		trafficArray[sec] = getTraffic()	#randint(0, 10000)
+		lastReadingAtSec = sec
+
 	for event in pygame.event.get():
 		#if event.type == pygame.QUIT:
 		pygame.quit()
 		sys.exit()
+
+	return
+
+#keep everything on the "grid"
+def quantiseAngle(a):
+	da = (2 * math.pi) / 720	#resolution of 0.5 degree
+	
+	n = math.ceil(a/da)
+	result = n * da
+
+	return result
+
+def drawArc(screen, fill, cx, cy, radius, startAngleRad, stopAngleRad):
+	p = [(cx, cy)]
+
+	a = quantiseAngle(startAngleRad)
+	da = (2 * math.pi) / 360	#resolution of 1 degree
+	while True:
+		x = cx + int(radius*math.cos(a))
+		y = cy + int(radius*math.sin(a))
+		p.append((x, y))
+
+		if a >= stopAngleRad:
+			break
+
+		a = quantiseAngle(a + da)
+	p.append((cx, cy))
+
+	if len(p) > 2:
+	    pygame.draw.polygon(screen, (fill, fill, fill), p, 1)
 
 def draw(screen):
 	screen.fill((0, 0, 0))
@@ -155,56 +214,59 @@ def draw(screen):
 
 	timeSec = time.localtime().tm_sec
 
-	screenWidth = screen.get_width()
-	screenHeight = screen.get_height()
-	clockDiameter = min(screenWidth,screenHeight)-28
+	global screenWidth
+	global screenHeight
+	global innerClockDiameter
+	global outerClockDiameter
+	global trafficArray
+
+	global whiteValue
+	global blackValue
+
 	cx = int(screenWidth/2)
 	cy = int(screenHeight-(screenWidth/2)) + 10 #put it at the bottom of the screen
 
-	pygame.draw.circle(screen, (100,100,100), (cx, cy), int(clockDiameter/2), 1)
-
-	#pygame.draw.rect(screen,(255,255,255),(screenWidth/4,screenHeight/4,screenWidth/2,screenHeight/2))
 	da = (2 * math.pi)/60.0
 
-	a = (timeSec*-da)+(math.pi/2);#0 is at 12 o'clock
-	pygame.draw.arc(screen, (255,255,255), (cx-(clockDiameter/2), cy-(clockDiameter/2), clockDiameter, clockDiameter), a-(da/2), a+(da/2), 1)
+	n = lastReadingAtSec + 1
+	while True:
+		if n == 60:
+			n = 0
+		
+		a = (n*da)+(math.pi/2);	#0 is at 12 o'clock
+		r = interp(trafficArray[n], [0,25000], [innerClockDiameter/2,outerClockDiameter/2]) #32768
+		
+		dt=lastReadingAtSec-n;
+		if dt < 0:
+			dt = 60 + dt
+		fillValue = interp(dt, [0,59], [whiteValue,blackValue])
 
-	font = pygame.font.Font('OpenSans-Light.ttf', 22)
+		startAngleRad = a-(da/2)
+		stopAngleRad = a+(da/2)
+		drawArc(screen, fillValue, cx, cy, r, startAngleRad, stopAngleRad)
+
+		if n == lastReadingAtSec:
+			break
+
+		n += 1
+
+	pygame.draw.circle(screen, (0,0,0), (cx, cy), int(innerClockDiameter/2)-2, 0)
+	pygame.draw.circle(screen, (blackValue,blackValue,blackValue), (cx, cy), int(innerClockDiameter/2)-2, 1)
+
+	font = pygame.font.Font('data/OpenSans-Light.ttf', 32)
 
 	global downMbps
 	global upMbps
-	text = '{0:.2f} {1:.2f}'.format(downMbps, upMbps)
-	label = font.render(text, 1, (255,255,255))
+	
+	downLabel = font.render('{0:.2f}'.format(downMbps), 1, (whiteValue,whiteValue,whiteValue))
 
-	text_rect = label.get_rect(center=(cx,cy))
+	text_rect = downLabel.get_rect(center=(cx,cy))
 
-	screen.blit(label, text_rect)
-
-	# gfxdraw.arc(screen, int((screenWidth/2)-(clockDiameter/2)), int((screenHeight/2)-(clockDiameter/2)), int(clockDiameter/2), int(math.degrees(a)), int(math.degrees(a+da)), (255,255,255))
-
-
-	# int n = lastReadingAtSec + 1;//draw the clock oldest values first
-	# boolean finished = false;
-	# do {
-	# if(n == buffer.length) n = 0;
-	 
-
-	# float l = (panelWidth/2)+map(buffer[n], 0, 100000, 0, maxValue);
-	# l=min(l,maxValue);
-
-	# //if(v!=0) point(100+(v*sin(a+PI)),100+(v*cos(a+PI)));
-
-	# int t=lastReadingAtSec-n;
-	# t=t<0?60+t:t;
-	# t=(int)map(t,0,60,whiteValue,blackValue);
-	# stroke(t, t, t);
-	# arc(width/2, height/2, l*2, l*2, -a-HALF_PI, -a-HALF_PI+da, PIE);
-
-	# if(n==lastReadingAtSec) finished = true;
-	# else ++n;
-	# } while(!finished);
+	screen.blit(downLabel, text_rect)
 
 	pygame.display.flip()
+
+	return
 
 def main():
 	try:
@@ -215,6 +277,7 @@ def main():
 		pygame.init()
 		pygame.mouse.set_visible(False)
 
+		initAirodump()
 		initSpeedTest(900)	#900 seconds is a 15 minute interval
 
 		fps = 60.0
