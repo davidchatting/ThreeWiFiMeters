@@ -32,17 +32,61 @@ blackValue = 0
 
 lastReadingAtSec = 0
 
-def initAirodump():
-	global capFile
+def utils_wifi_freq_to_channel(mhz):
+	return {
+		2412: 1,
+		2417: 2,
+		2422: 3,
+		2427: 4,
+		2432: 5,
+		2437: 6,
+		2442: 7,
+		2447: 8,
+		2452: 9,
+		2457: 10,
+		2462: 11,
+		2467: 12,
+		2472: 13,
+		2484: 14,
+		5180: 36,
+		5190: 38,
+		5200: 40,
+		5210: 42,
+		5220: 44,
+		5230: 46,
+		5240: 48,
+		5260: 52,
+		5280: 56,
+		5300: 60,
+		5320: 64
+	}.get(mhz)
 
-	if(capFile.exists()):
-		os.remove(str(capFile.resolve()))
 
-	#sudo airmon-ng start wlan1
-	cmd = 'sudo airodump-ng --bssid "CC:33:BB:BA:6F:A5" --channel 48 -w capture wlan1mon --write-interval 1 --output-format pcap'
-	airodump = subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+def initNetwork():
+	#joinnetwork()
 
-	return
+	connectionInterface = 'wlan0'
+	scannerInterface = 'wlan1'
+
+	connection = NM.NetworkManager.GetDeviceByIpIface(connectionInterface)
+	scanner = NM.NetworkManager.GetDeviceByIpIface(scannerInterface)
+
+	homeSSID = connection.ActiveAccessPoint.Ssid
+
+	scanner.RequestScan({})
+	allAccessPoints = scanner.GetAllAccessPoints()	#returns array of NetworkManager.AccessPoint objects
+	allAccessPoints.sort(key=lambda ap: ap.Strength, reverse=True)
+
+	for ap in allAccessPoints:
+		#potentially more than one match (wifi repeaters 2.4 vs 5g networks etc)
+		if ap.Ssid == homeSSID:
+			#subprocess.Popen('sudo airmon-ng stop ' + scannerInterface + 'mon', shell=False)	#, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT
+			#subprocess.Popen('sudo airmon-ng start ' + scannerInterface, shell=False)	#, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT
+
+			cmd = 'sudo airodump-ng --bssid "' + ap.HwAddress + '" --channel ' + str(utils_wifi_freq_to_channel(ap.Frequency)) + ' -w capture ' + scannerInterface + 'mon' + ' --write-interval 1 --output-format pcap'
+			print(cmd)
+			airodump = subprocess.Popen(cmd, shell=True) #, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT
+			break
 
 def getTraffic():
 	traffic = 0
@@ -56,8 +100,6 @@ def getTraffic():
 		capFileSize = capFile.stat().st_size
 		traffic = (capFileSize - previousCapFileSize)
 		previousCapFileSize = capFileSize
-
-	#print(traffic)
 
 	return traffic
 
@@ -111,23 +153,6 @@ def doSpeedtest():
 	return
 
 def joinnetwork():
-	try:
-		device.RequestScan({})
-		allAccessPoints = device.GetAllAccessPoints()
-		allAccessPoints.sort(key=lambda ap: ap.Strength, reverse=True)
-
-		for ap in allAccessPoints:
-			info = {
-				'ssid': ap.Ssid,
-				'frequency': ap.Frequency,
-				'level': ap.Strength
-			}
-			print(info)
-	except:
-		print("probably scanned too soon")
-
-	device = NM.NetworkManager.GetDeviceByIpIface('wlan1')
-
 	ssidToMonitor = 'BTHub4-W3MZ' #will be obtained from UI using previous scan
 	password = ''
 
@@ -270,14 +295,11 @@ def draw(screen):
 
 def main():
 	try:
-		# joinnetwork()
-		# initNetworkScan('eth0')
-
 		initDisplay()
 		pygame.init()
 		pygame.mouse.set_visible(False)
 
-		initAirodump()
+		initNetwork()
 		initSpeedTest(900)	#900 seconds is a 15 minute interval
 
 		fps = 60.0
