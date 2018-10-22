@@ -65,28 +65,32 @@ def utils_wifi_freq_to_channel(mhz):
 def initNetwork():
 	#joinnetwork()
 
-	connectionInterface = 'wlan0'
-	scannerInterface = 'wlan1'
+	# connectionInterface = 'wlan0'
+	# scannerInterface = 'wlan1'
 
-	connection = NM.NetworkManager.GetDeviceByIpIface(connectionInterface)
-	scanner = NM.NetworkManager.GetDeviceByIpIface(scannerInterface)
+	# connection = NM.NetworkManager.GetDeviceByIpIface(connectionInterface)
+	# scanner = NM.NetworkManager.GetDeviceByIpIface(scannerInterface)
 
-	homeSSID = connection.ActiveAccessPoint.Ssid
+	# homeSSID = connection.ActiveAccessPoint.Ssid
 
-	scanner.RequestScan({})
-	allAccessPoints = scanner.GetAllAccessPoints()	#returns array of NetworkManager.AccessPoint objects
-	allAccessPoints.sort(key=lambda ap: ap.Strength, reverse=True)
+	# scanner.RequestScan({})
+	# allAccessPoints = scanner.GetAllAccessPoints()	#returns array of NetworkManager.AccessPoint objects
+	# allAccessPoints.sort(key=lambda ap: ap.Strength, reverse=True)
 
-	for ap in allAccessPoints:
-		#potentially more than one match (wifi repeaters 2.4 vs 5g networks etc)
-		if ap.Ssid == homeSSID:
-			#subprocess.Popen('sudo airmon-ng stop ' + scannerInterface + 'mon', shell=False)	#, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT
-			#subprocess.Popen('sudo airmon-ng start ' + scannerInterface, shell=False)	#, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT
+	# for ap in allAccessPoints:
+	# 	#potentially more than one match (wifi repeaters 2.4 vs 5g networks etc)
+	# 	if ap.Ssid == homeSSID:
+	# 		#subprocess.Popen('sudo airmon-ng stop ' + scannerInterface + 'mon', shell=False)	#, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT
+	# 		#subprocess.Popen('sudo airmon-ng start ' + scannerInterface, shell=False)	#, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT
 
-			cmd = 'sudo airodump-ng --bssid "' + ap.HwAddress + '" --channel ' + str(utils_wifi_freq_to_channel(ap.Frequency)) + ' -w capture ' + scannerInterface + 'mon' + ' --write-interval 1 --output-format pcap'
-			print(cmd)
-			airodump = subprocess.Popen(cmd, shell=True) #, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT
-			break
+	# 		cmd = 'sudo airodump-ng --bssid "' + ap.HwAddress + '" --channel ' + str(utils_wifi_freq_to_channel(ap.Frequency)) + ' -w capture ' + scannerInterface + 'mon' + ' --write-interval 1 --output-format pcap'
+	# 		print(cmd)
+	# 		airodump = subprocess.Popen(cmd, shell=True) #, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT
+	# 		break
+	
+	cmd = 'sudo airodump-ng --bssid "' + '00:25:BC:8D:2D:BC' + '" --channel ' + str(36) + ' -w capture ' + 'wlan1' + 'mon' + ' --write-interval 1 --output-format pcap'
+	print(cmd)
+	#airodump = subprocess.Popen(cmd, shell=True) #, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT
 
 def getTraffic():
 	traffic = 0
@@ -278,12 +282,13 @@ def draw(screen):
 	pygame.draw.circle(screen, (0,0,0), (cx, cy), int(innerClockDiameter/2)-2, 0)
 	pygame.draw.circle(screen, (blackValue,blackValue,blackValue), (cx, cy), int(innerClockDiameter/2)-2, 1)
 
-	font = pygame.font.Font('data/OpenSans-Light.ttf', 32)
+	font = pygame.font.Font('data/SempliceRegular.ttf', 11)
 
 	global downMbps
 	global upMbps
 	
-	downLabel = font.render('{0:.2f}'.format(downMbps), 1, (whiteValue,whiteValue,whiteValue))
+	#downLabel = font.render('{0:.2f}'.format(downMbps), 1, (whiteValue,whiteValue,whiteValue))
+	downLabel = font.render('00:25:BC:8D:2D:BC', False, (whiteValue,whiteValue,whiteValue))
 
 	text_rect = downLabel.get_rect(center=(cx,cy))
 
