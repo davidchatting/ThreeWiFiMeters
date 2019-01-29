@@ -14,6 +14,37 @@ from pathlib import Path
 from numpy import interp
 from random import randint
 
+import nmap
+nmapPortScanner = nmap.PortScanner()             # instantiate nmap.PortScanner object
+import socket
+
+from numpy import ndarray 
+DeviceList = ndarray((256,),bool)
+
+def getipaddress():
+    return([l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0])
+
+thisIP = getipaddress()
+
+def getsubnet():
+    subnet=getipaddress()
+    subnet=subnet[:subnet.rfind('.')-len(subnet)]
+    return(subnet)
+
+thisSubnet = getsubnet()
+
+
+def getDeviceFromIPAddress(ipAddress):
+    result=-1
+
+    if ipAddress.startswith(thisSubnet):
+        n=ipAddress[len(thisSubnet)+1:]
+        if len(n)>0:
+            result=int(n)
+
+    return (result)
+
+
 downMbps = 0
 upMbps = 0
 
@@ -91,6 +122,34 @@ def initNetwork():
 	cmd = 'sudo airodump-ng --bssid "' + '00:25:BC:8D:2D:BC' + '" --channel ' + str(36) + ' -w capture ' + 'wlan1' + 'mon' + ' --write-interval 1 --output-format pcap'
 	print(cmd)
 	#airodump = subprocess.Popen(cmd, shell=True) #, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT
+
+def initMapNetwork(intervalSec):
+	try:
+		_thread.start_new_thread(mapnetworkThread, (intervalSec,) )
+	except:
+		print ("Error: unable to start thread for speed test")
+
+	return
+
+def mapnetworkThread(intervalSec):
+	global DeviceList
+
+	while True:
+		print('----------------------------------------------------')
+
+		nmapPortScanner.scan(hosts=getsubnet()+'.0/24', arguments='-R -sP -PE -PA21,23,80,3389')  #-O -R -sS -PE -PA21,23,80,3389
+
+		for n in range(0, 255):
+			DeviceList[n]=False
+
+		for h in nmapPortScanner.all_hosts():
+			ipAddress=nmapPortScanner[h]['addresses']['ipv4']
+
+			DeviceList[getDeviceFromIPAddress(ipAddress)]=True
+			print(getDeviceFromIPAddress(ipAddress), ipAddress, nmapPortScanner[h]['vendor'], nmapPortScanner[h].hostname())    #, nm[h]['osclass']
+		
+		time.sleep(intervalSec)
+	return
 
 def getTraffic():
 	traffic = 0
@@ -252,6 +311,8 @@ def draw(screen):
 	global whiteValue
 	global blackValue
 
+	global DeviceList
+
 	cx = int(screenWidth/2)
 	cy = int(screenHeight-(screenWidth/2)) + 10 #put it at the bottom of the screen
 
@@ -286,9 +347,21 @@ def draw(screen):
 
 	global downMbps
 	global upMbps
+
+	numberOfDevices = 0
+	deviceRingRadiusMin = int(256/math.pi)/2
+	for n in range(0, 255):
+		if DeviceList[n] == True:
+			a = ((2 * math.pi)/256)*n
+
+			pygame.draw.circle(screen, (255,255,255), (cx + int(deviceRingRadiusMin*math.cos(a)), cy + int(deviceRingRadiusMin*math.sin(a))), 3, 1)
+    		#point(cx+(deviceRingDiameterMin/2)*cos(a),cy+(deviceRingDiameterMin/2)*sin(a))
+			#print('device',n)
+			numberOfDevices = numberOfDevices + 1
 	
+	downLabel = font.render('{0:.2f}'.format(numberOfDevices), 1, (whiteValue,whiteValue,whiteValue))
 	#downLabel = font.render('{0:.2f}'.format(downMbps), 1, (whiteValue,whiteValue,whiteValue))
-	downLabel = font.render('00:25:BC:8D:2D:BC', False, (whiteValue,whiteValue,whiteValue))
+	#downLabel = font.render('00:25:BC:8D:2D:BC', False, (whiteValue,whiteValue,whiteValue))
 
 	text_rect = downLabel.get_rect(center=(cx,cy))
 
@@ -304,8 +377,9 @@ def main():
 		pygame.init()
 		pygame.mouse.set_visible(False)
 
-		initNetwork()
-		initSpeedTest(900)	#900 seconds is a 15 minute interval
+		#initNetwork()
+		#initSpeedTest(900)	#900 seconds is a 15 minute interval
+		initMapNetwork(60)
 
 		fps = 60.0
 		clock = pygame.time.Clock()
@@ -323,46 +397,6 @@ def main():
 
 main()
 
-#NM.NetworkManager.ActivateConnection('/',device, '/')
 
-#conn = NM.Settings.ListConnections()[0]
-#print(conn)
 
-#---
-
-# import NetworkManager
-# import sys
-
-# # Find the connection
-# name = 'Wired connection 1'
-# connections = NetworkManager.Settings.ListConnections()
-# connections = dict([(x.GetSettings()['connection']['id'], x) for x in connections])
-# print(connections)
-# conn = connections[name]
-
-# # Find a suitable device
-# ctype = conn.GetSettings()['connection']['type']
-# if ctype == 'vpn':
-# for dev in NetworkManager.NetworkManager.GetDevices():
-# if dev.State == NetworkManager.NM_DEVICE_STATE_ACTIVATED and dev.Managed:
-# break
-# else:
-# print("No active, managed device found")
-# sys.exit(1)
-# else:
-# dtype = {
-# '802-11-wireless': NetworkManager.NM_DEVICE_TYPE_WIFI,
-# '802-3-ethernet': NetworkManager.NM_DEVICE_TYPE_ETHERNET,
-# 'gsm': NetworkManager.NM_DEVICE_TYPE_MODEM,
-# }.get(ctype,ctype)
-# devices = NetworkManager.NetworkManager.GetDevices()
-
-# for dev in devices:
-# if dev.DeviceType == dtype and dev.State == NetworkManager.NM_DEVICE_STATE_DISCONNECTED:
-# break
-# else:
-# print("No suitable and available %s device found" % ctype)
-# sys.exit(1)
-
-# # And connect
-# NetworkManager.NetworkManager.ActivateConnection(conn, dev, "/")
+#mapnetwork()
