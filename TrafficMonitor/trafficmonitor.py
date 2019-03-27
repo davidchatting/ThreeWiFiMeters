@@ -9,7 +9,14 @@ import time
 from fontTools.ttLib import TTFont
 from pathlib import Path
 from numpy import interp
-from random import randint
+# from random import randint
+import random
+
+import nmap
+import socket
+
+import scapy.all
+import ipaddress
 
 screenWidth = 0
 screenHeight = 0
@@ -19,20 +26,124 @@ innerClockDiameter = 0
 whiteValue = 0
 blackValue = 0
 
+localRouter = ""
+internetGateway = ""
+remoteServer = "1.1.1.1"   #use rather than ip address so no DNS resolution required (which obvs needs network)
+
+nm = nmap.PortScanner()
+devices = ["" for x in range(256)]
+
+def initTestNetwork(intervalSec):
+	try:
+		_thread.start_new_thread(testNetworkThread, (intervalSec,) )
+	except:
+		print ("Error: unable to start thread for speed test")
+	
+	return
+
+def testNetworkThread(intervalSec):
+	time.sleep(random.randint(0, 60))	#attempt to unsync threads to spread the load
+	while True:
+		testNetwork()
+		time.sleep(intervalSec)
+	return
+
+def testNetwork():
+	print("testNetwork")
+
+	global localRouter, internetGateway, remoteServer
+	if len(localRouter) == 0:
+		locateNetwork()
+
+	print("localRouter: " + localRouter + " " + str(ping(localRouter)))
+	print("internetGateway: " + internetGateway + " " + str(ping(internetGateway)))
+	print("remoteServer:    " + remoteServer + "    " + str(ping(remoteServer)))
+
+	return
+
+def locateNetwork():
+	global localRouter, internetGateway, remoteServer
+	
+	try:
+		for i in range(1, 28):
+			reply = traceroute(remoteServer,depth = i)
+
+			if reply is not None:
+				if len(localRouter) == 0:
+					localRouter = reply.src
+
+				# some gateways (at least the BT ones) don't always reply to direct pings - so are useless waypoints - so test that they do ping
+				if len(internetGateway) == 0 and not ipaddress.ip_address(reply.src).is_private and ping(reply.src):
+					internetGateway = reply.src
+
+				if reply.type == 3:
+					# destination reached
+					break
+	except socket.gaierror:
+		print("can't resolve hostname")
+
+def ping(ipAddress):
+	result = False
+
+	reply = traceroute(ipAddress,28)
+	if reply is not None:
+		result = True
+
+	return result
+
+def traceroute(ipAddress,depth):
+    pkt = scapy.all.IP(dst = ipAddress, ttl = depth) / scapy.all.UDP(dport=33434)
+    # Send the packet and get a reply
+    reply = scapy.all.sr1(pkt, verbose=0, timeout=2)
+
+    return reply
+
 def initMapNetwork(intervalSec):
 	try:
-		_thread.start_new_thread(mapnetworkThread, (intervalSec,) )
+		_thread.start_new_thread(mapNetworkThread, (intervalSec,) )
 	except:
 		print ("Error: unable to start thread for speed test")
 
 	return
 
-def mapnetworkThread(intervalSec):
+def mapNetworkThread(intervalSec):
+	time.sleep(random.randint(0, 60))	#attempt to unsync threads to spread the load
 	while True:
-		print("mapnetworkThread")
+		mapNetwork()
 		time.sleep(intervalSec)
 		
 	return
+
+def mapNetwork():
+	print("mapNetwork")
+	nm.scan(hosts=getsubnet(getipaddress())+'.0/24', arguments='-R -sP -PE -PA21,23,80,3389')  #-O -R -sS -PE -PA21,23,80,3389
+
+	for d in devices:
+		d = ""
+	for h in nm.all_hosts():
+		ipAddress=nm[h]['addresses']['ipv4']
+		# print(getDeviceFromIPAddress(ipAddress), nm[h].hostname())    #, nm[h]['osclass']    nm[h]['vendor'], 
+		devices[getDeviceFromIPAddress(ipAddress)] = nm[h].hostname()
+	return
+
+def getsubnet(ipAddress):
+    subnet=ipAddress[:ipAddress.rfind('.')-len(ipAddress)]
+    return(subnet)
+
+def getipaddress():
+    return([l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0])
+
+
+def getDeviceFromIPAddress(ipAddress):
+    result=-1
+
+    thisSubnet = getsubnet(getipaddress())
+    if ipAddress.startswith(thisSubnet):
+        n=ipAddress[len(thisSubnet)+1:]
+        if len(n)>0:
+            result=int(n)
+
+    return (result)
 
 def initDisplay():
 	global screen
@@ -97,6 +208,12 @@ def drawArc(screen, fill, cx, cy, radius, startAngleRad, stopAngleRad):
 	if len(p) > 2:
 	    pygame.draw.polygon(screen, (fill, fill, fill), p, 1)
 
+def drawDevices(screen):
+	# for i, d in enumerate(devices):
+	# 	if len(d) != 0:
+	# 		print(i, d)
+	return
+
 def draw(screen):
 	screen.fill((0, 0, 0))
 
@@ -119,17 +236,22 @@ def draw(screen):
 	pygame.draw.circle(screen, (0,0,0), (cx, cy), int(innerClockDiameter/2)-2, 0)
 	pygame.draw.circle(screen, (blackValue,blackValue,blackValue), (cx, cy), int(innerClockDiameter/2)-2, 1)
 
+	drawDevices(screen)
+
 	pygame.display.flip()
 
 	return
 
 def main():
 	try:
+		random.seed()
+
 		initDisplay()
 		pygame.init()
 		pygame.mouse.set_visible(False)
 
 		initMapNetwork(60)
+		initTestNetwork(60)
 
 		fps = 60.0
 		clock = pygame.time.Clock()
