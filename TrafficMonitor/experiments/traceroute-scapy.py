@@ -1,71 +1,66 @@
 import scapy.all
 import socket
-import time
+# import time
 
 import ipaddress
-import pings
-Ping = pings.Ping()
+
+localRouter = ""
+internetGateway = ""
+remoteServer = "1.1.1.1"   #use rather than ip address so no DNS resolution required (which obvs needs network)
 
 def ping(ipAddress):
-    delayMs = -1    
+    # print("ping *" + ipAddress + "*")
 
-    print("ping *" + ipAddress + "*")
+    result = False
 
-    response = Ping.ping(ipAddress, times=3)
-
-    response.print_messages()
+    reply = traceroute(ipAddress,28)
+    if reply is not None:
+        result = True
     
-    return delayMs
+    return result
 
-# # The fastest way to discover hosts on a local ethernet network is to use the ARP Ping method:
-# ans, unans = srp(Ether(dst="ff:ff:ff:ff:ff:ff")/ARP(pdst=host), timeout=2)
-
-# # Answers can be reviewed with the following command:
-# ans.summary(lambda s, r: r.sprintf("%Ether.src% %ARP.psrc%"))
-
-def ping(ipAddress,depth):
+def traceroute(ipAddress,depth):
     pkt = scapy.all.IP(dst = ipAddress, ttl = depth) / scapy.all.UDP(dport=33434)
     # Send the packet and get a reply
     reply = scapy.all.sr1(pkt, verbose=0, timeout=2)
 
-    if reply is not None:
-        delayMs = int(round((reply.time - pkt.time) * 1000))
-        print(depth, delayMs, reply.src)
-    else:
-        print('*')
+    # if reply is not None:
+    #     delayMs = int(round((reply.time - pkt.time) * 1000))
+    #     print(depth, delayMs, reply.src)
 
     return reply
 
 def locateNetwork():
-    localRouter = ""
-    internetGateway = ""
-    remoteServer = "91.146.107.101"   #www.davidchatting.com use ip address so get more info if DNS is unreachable
+    print("locateNetwork")
+    global localRouter, internetGateway, remoteServer
+
     try:
         for i in range(1, 28):
-            reply = ping(remoteServer,depth = i)
+            reply = traceroute(remoteServer,depth = i)
 
             if reply is not None:
                 if len(localRouter) == 0:
                     localRouter = reply.src
                 
-                if len(internetGateway) == 0 and not ipaddress.ip_address(reply.src).is_private:
+                # some gateways (at least the BT ones don't reply to direct pings) 
+                if len(internetGateway) == 0 and not ipaddress.ip_address(reply.src).is_private and ping(reply.src):
                     internetGateway = reply.src
 
-                #delayMs = int(round((reply.time - pkt.time) * 1000))
-                #print(str(i) + ": " + str(delayMs) + " ms " + reply.src + " " + str(ipaddress.ip_address(reply.src).is_private))
                 if reply.type == 3:
                     # We've reached our destination
                     break
     except socket.gaierror:
         print("can't resolve hostname")
 
-    # print(ping(localRouter))
-    # print(ping(internetGateway))
-    # print(ping(remoteServer))
+def testNetwork():
+    print("testNetwork")
+    global localRouter, internetGateway, remoteServer
 
-ping("91.146.107.101", depth = 255)
-ping("91.146.107.101", depth = 1)
-ping("91.146.107.101", depth = 4)
-ping("31.55.185.188", depth = 255)
+    if len(localRouter) == 0:
+        locateNetwork()
+    
+    print("localRouter: " + localRouter + " " + str(ping(localRouter)))
+    print("internetGateway: " + internetGateway + " " + str(ping(internetGateway)))
+    print("remoteServer:    " + remoteServer + "    " + str(ping(remoteServer)))
 
-#locateNetwork()
+testNetwork()
