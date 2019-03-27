@@ -42,12 +42,12 @@ def locateNetwork():
                 if len(localRouter) == 0:
                     localRouter = reply.src
                 
-                # some gateways (at least the BT ones don't reply to direct pings) 
+                # some gateways (at least the BT ones) don't always reply to direct pings - so are useless waypoints - so test that they do ping
                 if len(internetGateway) == 0 and not ipaddress.ip_address(reply.src).is_private and ping(reply.src):
                     internetGateway = reply.src
 
                 if reply.type == 3:
-                    # We've reached our destination
+                    # destination reached
                     break
     except socket.gaierror:
         print("can't resolve hostname")
