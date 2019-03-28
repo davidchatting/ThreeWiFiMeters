@@ -1,4 +1,3 @@
-
 import subprocess
 import _thread
 import os
@@ -9,7 +8,6 @@ import time
 from fontTools.ttLib import TTFont
 from pathlib import Path
 from numpy import interp
-# from random import randint
 import random
 
 import nmap
@@ -33,6 +31,11 @@ remoteServer = "1.1.1.1"   #use rather than ip address so no DNS resolution requ
 nm = nmap.PortScanner()
 devices = ["" for x in range(256)]
 
+connectivity = [False, False, False]
+
+trafficArray = [0] * 60
+lastReadingAtSec = 0
+
 def initTestNetwork(intervalSec):
 	try:
 		_thread.start_new_thread(testNetworkThread, (intervalSec,) )
@@ -55,9 +58,9 @@ def testNetwork():
 	if len(localRouter) == 0:
 		locateNetwork()
 
-	print("localRouter: " + localRouter + " " + str(ping(localRouter)))
-	print("internetGateway: " + internetGateway + " " + str(ping(internetGateway)))
-	print("remoteServer:    " + remoteServer + "    " + str(ping(remoteServer)))
+	connectivity[0] = ping(localRouter)
+	connectivity[1] = ping(internetGateway)
+	connectivity[2] = ping(remoteServer)
 
 	return
 
@@ -81,6 +84,10 @@ def locateNetwork():
 					break
 	except socket.gaierror:
 		print("can't resolve hostname")
+
+	print("localRouter: " + localRouter)
+	print("internetGateway: " + internetGateway)
+	print("remoteServer:    " + remoteServer)
 
 def ping(ipAddress):
 	result = False
@@ -173,6 +180,11 @@ def update(dt):
 	global trafficArray
 	global lastReadingAtSec
 
+	sec = time.localtime().tm_sec
+	if(sec != lastReadingAtSec):
+		trafficArray[sec] = random.randint(0, 25000)
+		lastReadingAtSec = sec
+
 	for event in pygame.event.get():
 		#if event.type == pygame.QUIT:
 		pygame.quit()
@@ -208,17 +220,99 @@ def drawArc(screen, fill, cx, cy, radius, startAngleRad, stopAngleRad):
 	if len(p) > 2:
 	    pygame.draw.polygon(screen, (fill, fill, fill), p, 1)
 
-def drawDevices(screen):
-	# for i, d in enumerate(devices):
-	# 	if len(d) != 0:
-	# 		print(i, d)
+def drawDevices(cx, cy, bandWidth, screen):
+	radius = int(3.5 * bandWidth)
+	circumference = 2 * radius * math.pi
+	deviceRadius = int((circumference/256)/2 - 2)
+
+	# pygame.draw.circle(screen, (blackValue,blackValue,blackValue), (cx, cy), radius, 1)
+
+	da = (2 * math.pi) / 255
+	for i, d in enumerate(devices):
+		if len(d) != 0:
+			a = i * da
+			x = int(cx + radius * math.cos(a))
+			y = int(cy + radius * math.sin(a))
+			pygame.draw.circle(screen, (whiteValue,whiteValue,whiteValue), (x, y), deviceRadius, 0)
+
+	return
+
+def drawConnectivity(cx, cy, bandWidth, screen):
+	connectedWidth = int(bandWidth)
+	disconnectedWidth = int(connectedWidth/3)
+	
+	localWidth = disconnectedWidth
+	gatewayWidth = disconnectedWidth
+	remoteWidth = disconnectedWidth
+	if(connectivity[0]):
+		localWidth = connectedWidth
+		if(connectivity[1]):
+			gatewayWidth = connectedWidth
+			if(connectivity[2]):
+				remoteWidth = connectedWidth
+
+	pygame.draw.circle(screen, (whiteValue,whiteValue,whiteValue), (cx, cy), localWidth + gatewayWidth + remoteWidth, 0)
+	pygame.draw.circle(screen, (blackValue,blackValue,blackValue), (cx, cy), localWidth + gatewayWidth, 0)
+	pygame.draw.circle(screen, (whiteValue,whiteValue,whiteValue), (cx, cy), localWidth, 0)
+
+	return
+
+def drawActivity(cx, cy, bandWidth, screen):
+	radius = int(4 * bandWidth)
+
+	# pygame.draw.circle(screen, (whiteValue,whiteValue,whiteValue), (cx, cy), radius, 1)
+	da = (2 * math.pi)/60.0
+
+	n = lastReadingAtSec + 1
+
+	while True:
+		if n == 60:
+			n = 0
+
+		a = (n*da)+(math.pi/2);	# 0 is at 12 o'clock
+		r = interp(trafficArray[n], [0,25000], [radius, radius + bandWidth]) #32768
+		# r = radius
+		
+		dt=lastReadingAtSec-n
+		if dt < 0:
+			dt = 60 + dt
+		fillValue = interp(dt, [0,59], [whiteValue,blackValue])
+
+		startAngleRad = a-(da/2)
+		stopAngleRad = a+(da/2)
+		drawArc(screen, fillValue, cx, cy, r, startAngleRad, stopAngleRad)
+
+		if n == lastReadingAtSec:
+			break
+
+		n += 1
+
+	return
+
+def drawArc(screen, fill, cx, cy, radius, startAngleRad, stopAngleRad):
+	# p = [(cx, cy)]
+	p = []
+
+	a = quantiseAngle(startAngleRad)
+	da = (1 * math.pi) / 360	#resolution of 0.5 degree
+	while True:
+		x = cx + int(radius*math.cos(a))
+		y = cy + int(radius*math.sin(a))
+		p.append((x, y))
+
+		if a >= stopAngleRad:
+			break
+
+		a = quantiseAngle(a + da)
+	# p.append((cx, cy))
+
+	if len(p) > 2:
+		pygame.draw.polygon(screen, (fill, fill, fill), p, 1)
+
 	return
 
 def draw(screen):
 	screen.fill((0, 0, 0))
-
-	# timeMs = pygame.time.get_ticks()
-	# timeSec = int((timeMs/1000) % 60)
 
 	timeSec = time.localtime().tm_sec
 
@@ -231,12 +325,15 @@ def draw(screen):
 	global blackValue
 
 	cx = int(screenWidth/2)
-	cy = int(screenHeight-(screenWidth/2)) + 10 #put it at the bottom of the screen
+	cy = int(screenHeight-(screenWidth/2)) + 10 # put it at the bottom of the screen
 
-	pygame.draw.circle(screen, (0,0,0), (cx, cy), int(innerClockDiameter/2)-2, 0)
-	pygame.draw.circle(screen, (blackValue,blackValue,blackValue), (cx, cy), int(innerClockDiameter/2)-2, 1)
+	pygame.draw.circle(screen, (blackValue,blackValue,blackValue), (cx, cy), int(outerClockDiameter/2), 1)
 
-	drawDevices(screen)
+	bandWidth = (outerClockDiameter/2)/6	# the interface is drawn in bands
+
+	drawConnectivity(cx, cy, bandWidth, screen)
+	drawDevices(cx, cy, bandWidth, screen)
+	drawActivity(cx, cy, bandWidth, screen)
 
 	pygame.display.flip()
 
