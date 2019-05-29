@@ -8,7 +8,7 @@ const int ledPin = 12;
 const int ledLevel = 64;
 
 const int minRSSI = -100;
-const int maxRSSI = -10;
+const int maxRSSI = -20;
 
 void setup() {
   pinMode(ledPin, OUTPUT);
@@ -17,10 +17,10 @@ void setup() {
   Serial.begin(9600);
 
   WiFiManager wifiManager;
-  wifiManager.setCustomHeadElement("<style>html{filter: invert(100%); -webkit-filter: invert(100%);}</style>");
+  //wifiManager.setCustomHeadElement("<style>html{filter: invert(100%); -webkit-filter: invert(100%);}</style>");
 
-  WiFiManagerParameter custom_text("<p>This is just a text paragraph</p>");
-  wifiManager.addParameter(&custom_text);
+  //WiFiManagerParameter custom_text("<p>This is just a text paragraph</p>");
+  //wifiManager.addParameter(&custom_text);
   
   wifiManager.autoConnect("Signal Strength Meter"); //blocks waiting for wifi to be configured
 }
