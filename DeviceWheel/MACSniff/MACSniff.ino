@@ -9,7 +9,7 @@
 unsigned int channel = 6;
 
 void setup() {
-  Serial.begin(57600);
+  Serial.begin(9600);
   Serial.printf("\n\nSDK version:%s\n\r", system_get_sdk_version());
   Serial.println(F("ESP8266 enhanced sniffer by Kosme https://github.com/kosme"));
 

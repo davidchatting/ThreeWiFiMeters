@@ -29,16 +29,18 @@ void promisc_cb(uint8_t *buf, uint16_t len)
   if((buf[12]==0x88)||(buf[12]==0x40)||(buf[12]==0x94)||(buf[12]==0xa4)||(buf[12]==0xb4)||(buf[12]==0x08))
   {
     //Serial.printf("%02x\n",buf[12]);
-    if(buf[12]==0x40) Serial.printf("Disconnected: ");
-    else if(buf[12]==0x08) Serial.printf("Data: ");
-    else if(buf[12]==0x88) Serial.printf("QOS: ");
-    else Serial.printf("%02x: ",buf[12]);
+    if(buf[12]==0x40) Serial.printf("Disconnected");
+    else if(buf[12]==0x08) Serial.printf("Data");
+    else if(buf[12]==0x88) Serial.printf("QOS");
+    else Serial.printf("%02x\t",buf[12]);
+    Serial.printf("\t");
+    
     // Origin MAC address starts at byte 22
     // Print MAC address
     for(int i=0;i<5;i++) {
       Serial.printf("%02x:",buf[22+i]);
     }
-    Serial.printf("%02x  ",buf[22+5]);
+    Serial.printf("%02x\t",buf[22+5]);
     // Signal strength is in byte 0
     Serial.printf("%i\n",int8_t(buf[0]));
 
