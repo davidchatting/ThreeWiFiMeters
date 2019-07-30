@@ -119,54 +119,6 @@ def drawLine(screen, start, end, color) :
 
 	return
 
-def drawParticle(cx, cy, size, incoming) :
-	a = random.uniform(0, math.pi * 2)
-	if(incoming) :
-		p.x = (sourceRadius * cos(a)) + cx
-		p.y = (sourceRadius * sin(a)) + cy
-
-		t.x = cx
-		t.y = cy
-	else :
-		t.x = (sourceRadius * math.cos(a)) + cx
-		t.y = (sourceRadius * math.sin(a)) + cy
-
-		p.x = cx
-		p.y = cy
-
-	ta = a + random(-(math.pi / 2), (math.pi / 2))
-	da = random.randint(20, 100)
-	dtx = t.x + (da * math.cos(ta))
-	dty = t.y + (da * math.sin(ta))
-
-	pa = math.atan2((dty-p.y), (dtx-p.x))
-	# velocity = PVector.fromAngle(pa)
-
-	vertex = []
-	for n in xrange(0, sourceRadius * 100):
-		# PVector g = new PVector(t.x - p.x, t.y - p.y, 0.0);
-		# dSq = g.magSq()
-
-		if dSq < 10.0 :
-			break
-		else :
-			print(".")
-			# float ga = 2.0f / dSq;
-
-			# g.normalize();
-			# g.mult(ga);
-			# stroke(255, size);
-
-			# velocity.mult(0.998f);
-			# velocity.add(g);
-
-			# p.add(velocity);
-
-			# vertex.append((p.x, p.y)) 
-			
-	if len(vertex) > 0 :
-		pygame.gfxdraw.aapolygon(screen, vertex, (255,255,255))
-
 def getPositionFromMacAddress(macAddress) :
 	global screenWidth
 	global screenHeight
