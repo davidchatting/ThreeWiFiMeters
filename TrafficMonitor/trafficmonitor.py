@@ -15,6 +15,7 @@ from scapy.all import *
 screenWidth = 0
 screenHeight = 0
 portalDiameter = 0
+remoteRadius = 0
 
 whiteValue = 0
 blackValue = 0
@@ -41,10 +42,10 @@ def PacketHandler(packet) :
 					sndMacAddress = packet.addr1
 					recMacAddress = packet.addr2
 
-					if recMacAddress == apMacAddress :
-						drawPacket(sndMacAddress, True, numOfBytes)
-					elif sndMacAddress == apMacAddress :
-						drawPacket(recMacAddress, False, numOfBytes)
+					# if recMacAddress == apMacAddress :
+					# 	drawPacket(sndMacAddress, True, numOfBytes)
+					# elif sndMacAddress == apMacAddress :
+					# 	drawPacket(recMacAddress, False, numOfBytes)
 					print("{}	{}	{}	{}	{}".format(packet.addr1, packet.addr2, packet.addr3, numOfBytes, apMacAddress))
 
 		# CONTROL packet
@@ -54,8 +55,67 @@ def PacketHandler(packet) :
 
 	return
 
-def drawPacket(deviceAddress, direction, numOfBytes) :
-	print("{}	{}	{}".format(deviceAddress, direction, numOfBytes))
+def drawPacket(screen, deviceAddress, direction, numOfBytes) :
+	global whiteValue
+	global blackValue
+	global remoteRadius
+
+	# print("{}	{}	{}".format(deviceAddress, direction, numOfBytes))
+
+	d = getPositionFromMacAddress(deviceAddress)
+	c = getCentre()
+	a = random.uniform(0, 2 * math.pi)
+	r = [d[0] + remoteRadius * math.cos(a), d[1] + remoteRadius * math.sin(a)]
+	drawParticle(screen, r, d)
+
+	return
+
+def drawParticle(screen, start, end) :
+	global whiteValue
+	global blackValue
+	global remoteRadius
+
+	a =  math.atan2(end[1] - start[1], end[0] - start[0])
+	da = a + random.uniform(-(math.pi/15.0), (math.pi/15.0))
+
+	# d_end = [start[0] + (remoteRadius * math.cos(da)), start[1] + (remoteRadius * math.sin(da))]
+	# pygame.gfxdraw.line(screen, int(start[0]), int(start[1]), int(d_end[0]), int(d_end[1]), (whiteValue,whiteValue,whiteValue))
+	
+	p = [start[0], start[1]]
+	pLast = p
+	v = [math.cos(da), math.sin(da)]	#velocity unit vector
+
+	step = 1
+	for x in range(0, remoteRadius * 100, step):
+		dx = end[0] - p[0]
+		dy = end[1] - p[1]
+		gdSq = (dx * dx) + (dy * dy)
+
+		if gdSq < 10:
+			break
+
+		ga = math.atan2(dy, dx)
+		g = 2.0 / gdSq	#inverse-square law
+		gv = [g * math.cos(ga), g * math.sin(ga)]
+
+		v = [v[0] * 0.998, v[1] * 0.998] #friction
+		v = [v[0] + gv[0], v[1] + gv[1]]
+
+		p = [p[0] + (step * v[0]), p[1] + (step * v[1])]
+
+		drawLine(screen, pLast, p, (whiteValue,whiteValue,whiteValue, 50))
+		pLast = p
+
+	return
+
+def drawLine(screen, start, end, color) :
+	global screenWidth
+	global screenHeight
+
+	onScreen = (start[0] >= 0 and start[0] <= screenWidth) and (start[1] >= 0 and start[1] <= screenHeight) or (end[0] >= 0 and end[0] <= screenWidth) and (end[1] >= 0 and end[1] <= screenHeight)
+
+	if onScreen :
+		pygame.gfxdraw.line(screen, int(start[0]), int(start[1]), int(end[0]), int(end[1]), color)
 
 	return
 
@@ -112,9 +172,6 @@ def getPositionFromMacAddress(macAddress) :
 	global screenHeight
 	global portalDiameter
 
-	x = screenWidth / 2
-	y = screenHeight / 2
-
 	hex = macAddress.split(":")
 	oui = int(hex[0] + hex[1] + hex[2], 16)
 	device = int(hex[3] + hex[4] + hex[5], 16)
@@ -128,8 +185,9 @@ def getPositionFromMacAddress(macAddress) :
 	r = portalDiameter / 2
 	dr = r * 0.05
 
-	x = (d * r * math.cos(a * math.pi * 2)) + (screenWidth/2) + (dr * math.cos(da * math.pi * 2))
-	y = (d * r * math.sin(a * math.pi * 2)) + (screenHeight/2) + (dr * math.sin(da * math.pi * 2))
+	c = getCentre()
+	x = (d * r * math.cos(a * math.pi * 2)) + c[0] + (dr * math.cos(da * math.pi * 2))
+	y = (d * r * math.sin(a * math.pi * 2)) + c[1] + (dr * math.sin(da * math.pi * 2))
 
 	return int(x), int(y)
 
@@ -151,6 +209,7 @@ def initDisplay():
 	global screenWidth
 	global screenHeight
 	global portalDiameter
+	global remoteRadius
 
 	global whiteValue
 	global blackValue
@@ -158,6 +217,7 @@ def initDisplay():
 	screenWidth = screen.get_width()
 	screenHeight = screen.get_height()
 	portalDiameter = min(screenWidth,screenHeight)-28
+	remoteRadius = 400
 
 	whiteValue = 200
 	blackValue = 15
@@ -184,26 +244,33 @@ def draw(screen):
 	global whiteValue
 	global blackValue
 
-	cx = int(screenWidth/2)
-	cy = int(screenHeight-(screenWidth/2)) + 10 # put it at the bottom of the screen
-
-	pygame.gfxdraw.circle(screen, cx, cy, int(portalDiameter/2),  (whiteValue,whiteValue,whiteValue))
-
+	c = getCentre()
+	pygame.gfxdraw.circle(screen, c[0], c[1], int(portalDiameter/2),  (whiteValue,whiteValue,whiteValue, 40))
+	drawPacket(screen, 'b0:72:bf:25:c3:41', True, 100)
+	
 	pygame.display.flip()
 
 	return
 
-def main():
+def getCentre() :
+	global screenWidth
+	global screenHeight
+
+	cx = int(screenWidth/2)
+	cy = int(screenHeight-(screenWidth/2)) + 10 # put it at the bottom of the screen
+
+	return [cx, cy]
+
+def main() :
 	try:
 		random.seed()
 
-		initNetwork()
+		#initNetwork()
 		initDisplay()
-		# print(getPositionFromMacAddress('b0:72:bf:25:c3:41'))
 		pygame.init()
 		pygame.mouse.set_visible(False)
 
-		fps = 60.0
+		fps = 3.0
 		clock = pygame.time.Clock()
 
 		dt = 1/fps
