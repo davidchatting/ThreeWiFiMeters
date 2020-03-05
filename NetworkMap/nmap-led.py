@@ -7,10 +7,10 @@ import argparse
 import subprocess
 import _thread
 
-from luma.core.serial import spi, noop
-from luma.core.render import canvas
 from luma.led_matrix.device import max7219
+from luma.core.interface.serial import spi, noop
 from luma.core.render import canvas
+
 from numpy import ndarray
 
 serial = spi(port=0, device=0, gpio=noop(), bus_speed_hz=16000000)
