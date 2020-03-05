@@ -11,7 +11,7 @@ device.contrast(0)
 width, height = 16, 16
 
 def drawPixel(x,y,c,display):
-	# translate from long 
+	# translate from row of four 8x8 to 16x16
 	position=(int) (x/8)
 	if y>=8:
 		position+=2
@@ -36,7 +36,7 @@ def main():
 		frameNumber = 0
 		while True:
 			with c as display:  #ImageDraw
-				display.rectangle((0, 0, (width * height)/8, 8), fill=0)
+				display.rectangle((0, 0, (width * height)/8, 8), fill=0)	#clear the screen
 
 				x = frameNumber % width
 				y = (int) (frameNumber / width)
