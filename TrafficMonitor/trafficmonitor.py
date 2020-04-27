@@ -222,7 +222,7 @@ def main() :
 		pygame.init()
 		pygame.mouse.set_visible(False)
 
-		fps = 3.0
+		fps = 1.0
 		clock = pygame.time.Clock()
 
 		dt = 1/fps
