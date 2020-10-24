@@ -60,9 +60,8 @@ void draw() {
   int s = second();
   for(int t=0; t < 60; ++t) {
     
-    int n = (s-t) >= 0 ?  (s-t) : (t-s);
-    //println(s + " " + t + " " + n);
-    int alpha = (t==s) ? 200 : 100;
+    int n = (s-t) >= 0 ?  (s-t) : 60+(s-t);
+    int alpha = (int) map(n, 60, 0,  0, 255);
     drawSecond(t, plot(uploadTraffic[t]), plot(downloadTraffic[t]), alpha);
   }
   
@@ -95,6 +94,7 @@ void drawSecond(int t, float up, float down, int alpha) {
   up = up * (graphMaxDiameter - graphAxisDiameter);
   down = down * (graphAxisDiameter - graphMinDiameter);
   
+  noStroke();
   fill(200, alpha);
   arc(cx, cy, graphAxisDiameter + up, graphAxisDiameter + up, ma, mb);
   fill(0);
