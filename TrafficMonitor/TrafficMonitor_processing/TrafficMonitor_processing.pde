@@ -10,25 +10,21 @@ int graphAxisDiameter;
 
 Serial sniffer;
 
-class Device {
-  String macAddress;
-  int position;
-  long lastActiveMs;
-};
-
 HashMap<String,Device> devices = new HashMap<String,Device>();
 
 boolean positionAllocation[] = new boolean[60];
-int uploadTraffic[] = new int[60];
-int downloadTraffic[] = new int[60];
 
-int uploadTotalBytes = 0;
-int downloadTotalBytes = 0;
+Observations uploadTraffic = new Observations();
+Observations downloadTraffic = new Observations();
+
+long nowMs = 0;
+int frameRate = 60;
+int tickIntervalMs = 15000;
 
 void setup() {
-  frameRate(60);
+  frameRate(frameRate);
   
-  sniffer = new Serial(this, "/dev/tty.usbserial-1410", 9600);
+  sniffer = new Serial(this, getArduinoPort(), 115200);
   sniffer.bufferUntil('\n');
   
   size(320, 480, P2D);
@@ -43,7 +39,7 @@ void setup() {
   graphMinDiameter = 32;
   graphMaxDiameter = portalDiameter - 32;
   
-  graphAxisDiameter = graphMinDiameter + (graphMaxDiameter - graphMinDiameter)/2;
+  graphAxisDiameter = 64;  //graphMinDiameter + (graphMaxDiameter - graphMinDiameter)/2;
 }
 
 void draw() {
@@ -57,13 +53,26 @@ void draw() {
   circle(cx, cy, graphMinDiameter);
   
   stroke(200);
-  int s = second();
-  for(int t=0; t < 60; ++t) {
+  int samplesPerMinute = 60000 / tickIntervalMs;
+  int t = (int)(samplesPerMinute * (second()/60.0f));
+  
+  for(int n=0; n < samplesPerMinute; ++n) {
+    int dt = (t-n) >= 0 ?  (t-n) : samplesPerMinute+(t-n);
+    //println("clock position: " + t + "  time: " + s + "  " + dtSec);
     
-    int n = (s-t) >= 0 ?  (s-t) : 60+(s-t);
-    int alpha = (int) map(n, 60, 0,  0, 255);
-    drawSecond(t, plot(uploadTraffic[t]), plot(downloadTraffic[t]), alpha);
+    int alpha = (int) map(dt, samplesPerMinute, 0,  0, 255);
+    
+    long startMs = nowMs - (dt * tickIntervalMs);
+    long endMs = startMs + tickIntervalMs;
+    
+    int up = uploadTraffic.count(startMs, endMs);
+    int down = downloadTraffic.count(startMs, endMs);
+    
+    if(frameCount % frameRate == 0) println("" + n + "  " + startMs + "  " + endMs + "  " + up + "  " + down);
+    
+    drawGraph(normalise(up), normalise(down), n, samplesPerMinute, alpha);
   }
+  if(frameCount % frameRate == 0) println("---");
   
   stroke(200);
   for (Map.Entry me : devices.entrySet()) {
@@ -83,22 +92,25 @@ void draw() {
     }
   }
   
-  if(frameCount % 60 == 0) tick();  //once a second
+  if((millis() - nowMs) > tickIntervalMs) {
+    tick();
+  }
 }
 
-void drawSecond(int t, float up, float down, int alpha) {
-  float m = map(t, 0, 60, 0, TWO_PI) - HALF_PI;
-  float ma = m - (TWO_PI/60.0f)/2.0f;
-  float mb = m + (TWO_PI/60.0f)/2.0f;
+void drawGraph(float up, float down, int t, int samplesPerMinute, int alpha) {
+  float ma = map(t, 0, samplesPerMinute, 0, TWO_PI) - HALF_PI;
+  float mb = ma + (TWO_PI/(float)samplesPerMinute);
   
-  up = up * (graphMaxDiameter - graphAxisDiameter);
-  down = down * (graphAxisDiameter - graphMinDiameter);
+  up = up * (graphMaxDiameter - graphAxisDiameter)/2;
+  down = down * (graphMaxDiameter - graphAxisDiameter)/2;
   
-  noStroke();
   fill(200, alpha);
-  arc(cx, cy, graphAxisDiameter + up, graphAxisDiameter + up, ma, mb);
+  noStroke();
+  //stroke(200);
+  arc(cx, cy, graphAxisDiameter + up + down, graphAxisDiameter + up + down, ma, mb);
   fill(0);
-  arc(cx, cy, graphAxisDiameter - down, graphAxisDiameter - down, ma, mb);
+  //stroke(200, alpha);
+  arc(cx, cy, graphAxisDiameter, graphAxisDiameter, ma, mb);
 }
 
 int allocatePosition(String macAddress){
@@ -115,45 +127,67 @@ int allocatePosition(String macAddress){
   return(position);
 }
 
-void tick() {  
-  uploadTraffic[second()] = uploadTotalBytes;
-  downloadTraffic[second()] = downloadTotalBytes;
-   
-  uploadTotalBytes = 0;
-  downloadTotalBytes = 0;
+void tick() {
+  long t = millis();
+  nowMs = t - (t % tickIntervalMs);  //clamp to whole seconds
 }
 
-float plot(int v) {
+float normalise(int v) {
   float result = 0.0f;
   
   if(v > 0) {
-    result = min(1.0f, map(log(v), 0, 10, 0, 1));
+    result = min(1.0f, map(log10(v), 0, 6, 0, 1));
+    //println(log10(v));
+    //result = min(1.0f, map(v, 0, 1048576, 0, 1));
   }
   
   return(result);
+}
+
+float log10 (float x) {
+  return (log(x) / log(10));
 }
 
 void serialEvent (Serial port) {
   String reading = port.readStringUntil('\n');
 
   if (reading != null && reading.startsWith("[aprx]")) {
-    println(reading);
-    
-    String s[] = reading.split("\t");
-    //[aprx]  54:60:09:E4:B0:BC  2324
-    String macAddress = s[1].trim();
-    
-    Device thisDevice = devices.get(macAddress);
-    if(thisDevice == null) {
-      thisDevice = new Device();
-      thisDevice.macAddress = macAddress;
-      thisDevice.position = allocatePosition(macAddress);
-      
-      devices.put(macAddress, thisDevice);
-    }
-    thisDevice.lastActiveMs = millis();
-    
-    uploadTotalBytes += int(s[2].trim());
-    downloadTotalBytes += int(s[3].trim());
+    String s[] = reading.split("\t");  //[aprx]  54:60:09:E4:B0:BC  2324    
+    addObservation(s[1].trim(), int(s[2].trim()), int(s[3].trim()));
   }
+}
+
+void addObservation(String macAddress, int uploadBytes, int downloadBytes) {
+  if(macAddress == "FF:FF:FF:FF:FF:FF") return;  //broadcast address
+  
+  long now =  millis();
+  Device thisDevice = devices.get(macAddress);
+  if(thisDevice == null) {
+    thisDevice = new Device();
+    thisDevice.macAddress = macAddress;
+    thisDevice.position = allocatePosition(macAddress);
+    
+    devices.put(macAddress, thisDevice);
+  }
+  thisDevice.lastActiveMs = now;
+  
+  uploadTraffic.add(uploadBytes, now);
+  downloadTraffic.add(downloadBytes, now);
+}
+
+String getArduinoPort() {
+  String port = null;
+  
+  String serialList [] = Serial.list();
+  for (int n=0; n < serialList.length && port==null; ++n) {
+    if (looksLikeArduino(serialList[n])) {
+      port = serialList[n];
+    }
+  }
+  
+  return(port);
+}
+
+boolean looksLikeArduino(String s) {
+  return(s.startsWith("/dev/tty.usb"));
 }
