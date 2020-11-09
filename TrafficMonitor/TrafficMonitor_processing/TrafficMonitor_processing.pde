@@ -10,6 +10,7 @@ int graphAxisDiameter;
 
 Serial sniffer;
 
+HashMap<Integer,String> oui = new HashMap<Integer,String>();
 HashMap<String,Device> devices = new HashMap<String,Device>();
 
 boolean positionAllocation[] = new boolean[60];
@@ -21,6 +22,8 @@ long nowMs = 0;
 int currentInterval = 0;
 int frameRate = 60;
 int tickIntervalMs = 1000;
+
+//http://linuxnet.ca/ieee/oui/nmap-mac-prefixes
 
 void setup() {
   frameRate(frameRate);
@@ -41,6 +44,12 @@ void setup() {
   graphMaxDiameter = portalDiameter - 32;
   
   graphAxisDiameter = 64;  //graphMinDiameter + (graphMaxDiameter - graphMinDiameter)/2;
+  
+  String[] prefixes = loadStrings("nmap-mac-prefixes");
+  for(int n=0; n < prefixes.length; ++n) {
+    String[] p = prefixes[n].split("\t");
+    oui.put(unhex(p[0]), p[1]);
+  }
 }
 
 void draw() {
@@ -83,7 +92,6 @@ void draw() {
 void drawGraph(float up, float down, int t, int samplesPerMinute, int alpha) {
   float ma = map(t, 0, samplesPerMinute, 0, TWO_PI) - HALF_PI;
   float mb = ma + (TWO_PI/(float)samplesPerMinute);
-  
   
   up = round(up * (graphMaxDiameter - graphAxisDiameter)/2);
   down = round(down * (graphMaxDiameter - graphAxisDiameter)/2);
@@ -156,21 +164,39 @@ void serialEvent (Serial port) {
 }
 
 void addObservation(String macAddress, int uploadBytes, int downloadBytes) {
-  if(macAddress == "FF:FF:FF:FF:FF:FF") return;  //broadcast address
+  //broadcast addresses:
+  if(macAddress.equals("FF:FF:FF:FF:FF:FF")) return;
+  if(macAddress.startsWith("33:33")) return;
+  if(macAddress.startsWith("01")) return;
   
-  long now =  millis();
-  Device thisDevice = devices.get(macAddress);
-  if(thisDevice == null) {
-    thisDevice = new Device();
-    thisDevice.macAddress = macAddress;
-    thisDevice.position = allocatePosition(macAddress);
+  String manufacturer = oui.get(getOUI(macAddress));
+  
+  if(manufacturer != null) {
+    long now =  millis();
+    Device thisDevice = devices.get(macAddress);
+    if(thisDevice == null) {
+      println("add: " + macAddress + " (" + manufacturer + ")");
+      
+      thisDevice = new Device();
+      thisDevice.macAddress = macAddress;
+      thisDevice.position = allocatePosition(macAddress);
+      
+      devices.put(macAddress, thisDevice);
+    }
+    thisDevice.lastActiveMs = now;
     
-    devices.put(macAddress, thisDevice);
+    uploadTraffic.add(uploadBytes, now);
+    downloadTraffic.add(downloadBytes, now);
   }
-  thisDevice.lastActiveMs = now;
+}
+
+int getOUI(String macAddress) {
+  int oui = 0;
   
-  uploadTraffic.add(uploadBytes, now);
-  downloadTraffic.add(downloadBytes, now);
+  String bytes[] = macAddress.split(":");
+  oui = (unhex(bytes[0]) << 16) + (unhex(bytes[1]) << 8) + unhex(bytes[2]);
+  
+  return(oui);
 }
 
 String getArduinoPort() {
