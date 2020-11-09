@@ -18,8 +18,9 @@ Observations uploadTraffic = new Observations();
 Observations downloadTraffic = new Observations();
 
 long nowMs = 0;
+int currentInterval = 0;
 int frameRate = 60;
-int tickIntervalMs = 15000;
+int tickIntervalMs = 1000;
 
 void setup() {
   frameRate(frameRate);
@@ -43,6 +44,14 @@ void setup() {
 }
 
 void draw() {
+  int samplesPerMinute = 60000 / tickIntervalMs;
+  int t = (int)(samplesPerMinute * (second()/60.0f));
+  
+  if(t != currentInterval) {
+    currentInterval = t;
+    nowMs += tickIntervalMs;
+  }
+  
   background(0);
   
   noFill();
@@ -53,14 +62,11 @@ void draw() {
   circle(cx, cy, graphMinDiameter);
   
   stroke(200);
-  int samplesPerMinute = 60000 / tickIntervalMs;
-  int t = (int)(samplesPerMinute * (second()/60.0f));
   
   for(int n=0; n < samplesPerMinute; ++n) {
     int dt = (t-n) >= 0 ?  (t-n) : samplesPerMinute+(t-n);
-    //println("clock position: " + t + "  time: " + s + "  " + dtSec);
     
-    int alpha = (int) map(dt, samplesPerMinute, 0,  0, 255);
+    int alpha = (int) map(dt, samplesPerMinute, 0, 25, 255);
     
     long startMs = nowMs - (dt * tickIntervalMs);
     long endMs = startMs + tickIntervalMs;
@@ -68,12 +74,30 @@ void draw() {
     int up = uploadTraffic.count(startMs, endMs);
     int down = downloadTraffic.count(startMs, endMs);
     
-    if(frameCount % frameRate == 0) println("" + n + "  " + startMs + "  " + endMs + "  " + up + "  " + down);
-    
     drawGraph(normalise(up), normalise(down), n, samplesPerMinute, alpha);
   }
-  if(frameCount % frameRate == 0) println("---");
   
+  drawDevices();
+}
+
+void drawGraph(float up, float down, int t, int samplesPerMinute, int alpha) {
+  float ma = map(t, 0, samplesPerMinute, 0, TWO_PI) - HALF_PI;
+  float mb = ma + (TWO_PI/(float)samplesPerMinute);
+  
+  
+  up = round(up * (graphMaxDiameter - graphAxisDiameter)/2);
+  down = round(down * (graphMaxDiameter - graphAxisDiameter)/2);
+  
+  fill(200, alpha);
+  noStroke();
+  //stroke(200);
+  arc(cx, cy, graphAxisDiameter + up + down, graphAxisDiameter + up + down, ma, mb);
+  fill(0);
+  //stroke(200, alpha);
+  arc(cx, cy, graphAxisDiameter, graphAxisDiameter, ma, mb);
+}
+
+void drawDevices() {
   stroke(200);
   for (Map.Entry me : devices.entrySet()) {
     Device thisDevice = (Device) me.getValue();
@@ -91,26 +115,6 @@ void draw() {
       circle(x, y, 8);
     }
   }
-  
-  if((millis() - nowMs) > tickIntervalMs) {
-    tick();
-  }
-}
-
-void drawGraph(float up, float down, int t, int samplesPerMinute, int alpha) {
-  float ma = map(t, 0, samplesPerMinute, 0, TWO_PI) - HALF_PI;
-  float mb = ma + (TWO_PI/(float)samplesPerMinute);
-  
-  up = up * (graphMaxDiameter - graphAxisDiameter)/2;
-  down = down * (graphMaxDiameter - graphAxisDiameter)/2;
-  
-  fill(200, alpha);
-  noStroke();
-  //stroke(200);
-  arc(cx, cy, graphAxisDiameter + up + down, graphAxisDiameter + up + down, ma, mb);
-  fill(0);
-  //stroke(200, alpha);
-  arc(cx, cy, graphAxisDiameter, graphAxisDiameter, ma, mb);
 }
 
 int allocatePosition(String macAddress){
@@ -127,18 +131,12 @@ int allocatePosition(String macAddress){
   return(position);
 }
 
-void tick() {
-  long t = millis();
-  nowMs = t - (t % tickIntervalMs);  //clamp to whole seconds
-}
-
 float normalise(int v) {
   float result = 0.0f;
   
   if(v > 0) {
-    result = min(1.0f, map(log10(v), 0, 6, 0, 1));
-    //println(log10(v));
-    //result = min(1.0f, map(v, 0, 1048576, 0, 1));
+    //result = min(1.0f, map(log10(v), 0, 6, 0, 1));
+    result = min(1.0f, map(v, 0, 262144, 0, 1));
   }
   
   return(result);
