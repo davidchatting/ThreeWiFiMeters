@@ -1,7 +1,7 @@
-#include <ESP8266WiFi.h>
+//#include <ESP8266WiFi.h>
 
-#include <DNSServer.h>
-#include <WiFiManager.h>         //https://github.com/tzapu/WiFiManager
+//#include <DNSServer.h>
+//#include <WiFiManager.h>         //https://github.com/tzapu/WiFiManager
 
 #include <Approximate.h>
 Approximate approx;

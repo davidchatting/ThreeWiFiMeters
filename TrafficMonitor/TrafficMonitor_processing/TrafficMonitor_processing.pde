@@ -2,6 +2,7 @@ import processing.serial.*;
 import java.util.Map;
 
 int cx, cy;
+int consoleWidth, consoleHeight;
 int portalDiameter;
 int devicesRingRadius;
 int graphMinDiameter;
@@ -10,7 +11,7 @@ int graphAxisDiameter;
 
 Serial sniffer;
 
-HashMap<Integer,String> oui = new HashMap<Integer,String>();
+HashMap<Integer,String> ouiTable = new HashMap<Integer,String>();
 HashMap<String,Device> devices = new HashMap<String,Device>();
 
 boolean positionAllocation[] = new boolean[60];
@@ -23,13 +24,18 @@ int currentInterval = 0;
 int frameRate = 60;
 int tickIntervalMs = 1000;
 
-//http://linuxnet.ca/ieee/oui/nmap-mac-prefixes
+int cycles = 5;
+int samplesPerCycle = 60;
+int interval;
+
+PFont font;
+int textHeightPx = 10;
+
+StringList console = new StringList();
 
 void setup() {
-  frameRate(frameRate);
-  
-  sniffer = new Serial(this, getArduinoPort(), 115200);
-  sniffer.bufferUntil('\n');
+  //frameRate(frameRate);
+  frameRate(1);
   
   size(320, 480, P2D);
   smooth(8);
@@ -38,6 +44,8 @@ void setup() {
   cy = int(height-(width/2)) + 10;
   portalDiameter = min(width, height)-28;
   
+  interval = ((portalDiameter/2)/(cycles-1))/2;
+  
   devicesRingRadius = (portalDiameter - 8)/2;
   
   graphMinDiameter = 32;
@@ -45,14 +53,77 @@ void setup() {
   
   graphAxisDiameter = 64;  //graphMinDiameter + (graphMaxDiameter - graphMinDiameter)/2;
   
-  String[] prefixes = loadStrings("nmap-mac-prefixes");
-  for(int n=0; n < prefixes.length; ++n) {
-    String[] p = prefixes[n].split("\t");
-    oui.put(unhex(p[0]), p[1]);
+  consoleWidth = width;
+  consoleHeight = cy - (portalDiameter/2);
+  
+  font = createFont("Helvetica", textHeightPx);
+  textFont(font);
+  
+  loadOuiTable();
+  
+  sniffer = new Serial(this, getArduinoPort(), 115200);
+  sniffer.bufferUntil('\n');
+}
+
+void draw() {  
+  background(0);
+  
+  drawConsole(0, 0, consoleWidth, consoleHeight);
+  
+  noFill();
+  stroke(20, 255);
+  circle(cx, cy, portalDiameter);
+  
+  //drawGraph(cx, cy);
+  strokeWeight(3);
+  drawSpiral(cx, cy, graphMaxDiameter); 
+  drawDevices();
+}
+
+void drawConsole(int x, int y, int w, int h) {
+  stroke(200, 255);
+  fill(200, 255);
+  String s ="";
+  for(int n = 0; n < console.size(); ++n) {
+    s += console.get(n);
+  }
+  
+  text(s, x + 10, y);
+}
+
+
+void drawSpiral(int cx, int cy, int diameter) {
+  noFill();
+  
+  float r = 0;
+  float step=(diameter/2.0f)/(samplesPerCycle * (cycles +1));
+  
+  float x, y, xb, yb;
+  float da = (TWO_PI/samplesPerCycle);
+  int alpha;
+  for (int i = 0 ; i <= (samplesPerCycle * cycles) ; i++ ){
+    alpha = (int) map(i, 0, (samplesPerCycle * cycles), 0, 255);
+    stroke(255, alpha);
+    
+    float a = PI - (da*i);
+    x = r * sin(a);
+    y = r * cos(a);
+    
+    drawTick(cx + x, cy + y, a, random(1.0f) * interval/2.0f);
+    r += step;
   }
 }
 
-void draw() {
+void drawTick(float cx, float cy, float a, float l) {
+  float cxb, cyb;
+  
+  cxb = cx + (l * sin(a));
+  cyb = cy + (l * cos(a));
+  
+  line(cx, cy, cxb, cyb);
+}
+
+void drawGraph(int x, int y) {
   int samplesPerMinute = 60000 / tickIntervalMs;
   int t = (int)(samplesPerMinute * (second()/60.0f));
   
@@ -61,16 +132,9 @@ void draw() {
     nowMs += tickIntervalMs;
   }
   
-  background(0);
-  
-  noFill();
-  stroke(20);
-  circle(cx, cy, portalDiameter);
-  circle(cx, cy, graphMaxDiameter);
-  circle(cx, cy, graphAxisDiameter);
-  circle(cx, cy, graphMinDiameter);
-  
-  stroke(200);
+  circle(x, y, graphMaxDiameter);
+  circle(x, y, graphAxisDiameter);
+  circle(x, y, graphMinDiameter);
   
   for(int n=0; n < samplesPerMinute; ++n) {
     int dt = (t-n) >= 0 ?  (t-n) : samplesPerMinute+(t-n);
@@ -83,13 +147,11 @@ void draw() {
     int up = uploadTraffic.count(startMs, endMs);
     int down = downloadTraffic.count(startMs, endMs);
     
-    drawGraph(normalise(up), normalise(down), n, samplesPerMinute, alpha);
+    drawTick(normalise(up), normalise(down), n, samplesPerMinute, alpha);
   }
-  
-  drawDevices();
 }
 
-void drawGraph(float up, float down, int t, int samplesPerMinute, int alpha) {
+void drawTick(float up, float down, int t, int samplesPerMinute, int alpha) {
   float ma = map(t, 0, samplesPerMinute, 0, TWO_PI) - HALF_PI;
   float mb = ma + (TWO_PI/(float)samplesPerMinute);
   
@@ -99,7 +161,7 @@ void drawGraph(float up, float down, int t, int samplesPerMinute, int alpha) {
   fill(200, alpha);
   noStroke();
   //stroke(200);
-  arc(cx, cy, graphAxisDiameter + up + down, graphAxisDiameter + up + down, ma, mb);
+  arc(cx, cy, graphAxisDiameter + up + down + 1, graphAxisDiameter + up + down + 1, ma, mb);
   fill(0);
   //stroke(200, alpha);
   arc(cx, cy, graphAxisDiameter, graphAxisDiameter, ma, mb);
@@ -163,19 +225,20 @@ void serialEvent (Serial port) {
   }
 }
 
-void addObservation(String macAddress, int uploadBytes, int downloadBytes) {
-  //broadcast addresses:
-  if(macAddress.equals("FF:FF:FF:FF:FF:FF")) return;
-  if(macAddress.startsWith("33:33")) return;
-  if(macAddress.startsWith("01")) return;
+void addObservation(String macAddress, int uploadBytes, int downloadBytes) {  
+  String manufacturer = ouiTable.get(getOUI(macAddress));
   
-  String manufacturer = oui.get(getOUI(macAddress));
-  
-  if(manufacturer != null) {
+  if(true) {
+  //if(macAddress.equals("A4:77:33:1B:C1:BC")){
+  //if(manufacturer != null) {
+    //println(uploadBytes + "  " + downloadBytes);
+    
     long now =  millis();
     Device thisDevice = devices.get(macAddress);
     if(thisDevice == null) {
-      println("add: " + macAddress + " (" + manufacturer + ")");
+      byte mostSigByte = (byte) unhex(macAddress.split(":")[0]);
+      
+      addToConsole(macAddress + " (" + manufacturer + ")\n");
       
       thisDevice = new Device();
       thisDevice.macAddress = macAddress;
@@ -199,6 +262,18 @@ int getOUI(String macAddress) {
   return(oui);
 }
 
+void loadOuiTable() {
+  //http://linuxnet.ca/ieee/oui/nmap-mac-prefixes
+  
+  addToConsole("Loading OUI table...\t");
+  String[] prefixes = loadStrings("nmap-mac-prefixes");
+  for(int n=0; n < prefixes.length; ++n) {
+    String[] p = prefixes[n].split("\t");
+    ouiTable.put(unhex(p[0]), p[1]);
+  }
+  addToConsole("DONE\n");
+}
+
 String getArduinoPort() {
   String port = null;
   
@@ -208,10 +283,16 @@ String getArduinoPort() {
       port = serialList[n];
     }
   }
+  addToConsole("Arduino Port: " + port + "\n");
   
   return(port);
 }
 
 boolean looksLikeArduino(String s) {
-  return(s.startsWith("/dev/tty.usb"));
+  return(s.startsWith("/dev/tty.usb") || s.equals("/dev/cu.SLAB_USBtoUART"));
+}
+
+void addToConsole(String line) {
+  print(line);
+  console.append(line);
 }
