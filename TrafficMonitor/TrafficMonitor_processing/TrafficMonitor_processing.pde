@@ -22,7 +22,7 @@ Observations downloadTraffic = new Observations();
 long nowMs = 0;
 int currentInterval = 0;
 int frameRate = 60;
-int tickIntervalMs = 1000;
+//int tickIntervalMs = 1000;
 
 int cycles = 5;
 int samplesPerCycle = 60;
@@ -34,8 +34,8 @@ int textHeightPx = 10;
 StringList console = new StringList();
 
 void setup() {
-  //frameRate(frameRate);
-  frameRate(1);
+  frameRate(frameRate);
+  noCursor();
   
   size(320, 480, P2D);
   smooth(8);
@@ -61,8 +61,11 @@ void setup() {
   
   loadOuiTable();
   
-  sniffer = new Serial(this, getArduinoPort(), 115200);
-  sniffer.bufferUntil('\n');
+  try{
+    sniffer = new Serial(this, getArduinoPort(), 115200);
+    sniffer.bufferUntil('\n');
+  }
+  catch(Exception e) {}
 }
 
 void draw() {  
@@ -76,7 +79,8 @@ void draw() {
   
   //drawGraph(cx, cy);
   strokeWeight(3);
-  drawSpiral(cx, cy, graphMaxDiameter); 
+  drawSpiral(cx, cy, graphMaxDiameter);
+  strokeWeight(2);
   drawDevices();
 }
 
@@ -93,23 +97,43 @@ void drawConsole(int x, int y, int w, int h) {
 
 
 void drawSpiral(int cx, int cy, int diameter) {
-  noFill();
+  int tickIntervalMs = 60000 / samplesPerCycle;
+  int t = (int)(samplesPerCycle * (second()/60.0f));
+  
+  if(t != currentInterval) {
+    currentInterval = t;
+    nowMs += tickIntervalMs;
+  }
   
   float r = 0;
   float step=(diameter/2.0f)/(samplesPerCycle * (cycles +1));
   
-  float x, y, xb, yb;
+  float x, y;
   float da = (TWO_PI/samplesPerCycle);
   int alpha;
-  for (int i = 0 ; i <= (samplesPerCycle * cycles) ; i++ ){
-    alpha = (int) map(i, 0, (samplesPerCycle * cycles), 0, 255);
-    stroke(255, alpha);
+  
+  int n = (samplesPerCycle * cycles);
+  
+  noFill();
+  for (int i = 0 ; i <= n ; i++ ){
+    int dtSec = -1 * (n-i);
+    
+    alpha = (i<samplesPerCycle/2)? 0 : 255;  //(int) map(i, 0, (samplesPerCycle * cycles), 0, 255);
+    
+    if(dtSec == 0) stroke(255, 0, 0, alpha);
+    else stroke(255, alpha);
     
     float a = PI - (da*i);
     x = r * sin(a);
     y = r * cos(a);
     
-    drawTick(cx + x, cy + y, a, random(1.0f) * interval/2.0f);
+    long startMs = nowMs + (dtSec * tickIntervalMs);
+    long endMs = startMs + tickIntervalMs;
+    
+    int up = uploadTraffic.count(startMs, endMs);
+    int down = downloadTraffic.count(startMs, endMs);
+    
+    drawTick(cx + x, cy + y, a, max(0.1f, normalise(up + down) * interval/2.0f));
     r += step;
   }
 }
@@ -121,50 +145,6 @@ void drawTick(float cx, float cy, float a, float l) {
   cyb = cy + (l * cos(a));
   
   line(cx, cy, cxb, cyb);
-}
-
-void drawGraph(int x, int y) {
-  int samplesPerMinute = 60000 / tickIntervalMs;
-  int t = (int)(samplesPerMinute * (second()/60.0f));
-  
-  if(t != currentInterval) {
-    currentInterval = t;
-    nowMs += tickIntervalMs;
-  }
-  
-  circle(x, y, graphMaxDiameter);
-  circle(x, y, graphAxisDiameter);
-  circle(x, y, graphMinDiameter);
-  
-  for(int n=0; n < samplesPerMinute; ++n) {
-    int dt = (t-n) >= 0 ?  (t-n) : samplesPerMinute+(t-n);
-    
-    int alpha = (int) map(dt, samplesPerMinute, 0, 25, 255);
-    
-    long startMs = nowMs - (dt * tickIntervalMs);
-    long endMs = startMs + tickIntervalMs;
-    
-    int up = uploadTraffic.count(startMs, endMs);
-    int down = downloadTraffic.count(startMs, endMs);
-    
-    drawTick(normalise(up), normalise(down), n, samplesPerMinute, alpha);
-  }
-}
-
-void drawTick(float up, float down, int t, int samplesPerMinute, int alpha) {
-  float ma = map(t, 0, samplesPerMinute, 0, TWO_PI) - HALF_PI;
-  float mb = ma + (TWO_PI/(float)samplesPerMinute);
-  
-  up = round(up * (graphMaxDiameter - graphAxisDiameter)/2);
-  down = round(down * (graphMaxDiameter - graphAxisDiameter)/2);
-  
-  fill(200, alpha);
-  noStroke();
-  //stroke(200);
-  arc(cx, cy, graphAxisDiameter + up + down + 1, graphAxisDiameter + up + down + 1, ma, mb);
-  fill(0);
-  //stroke(200, alpha);
-  arc(cx, cy, graphAxisDiameter, graphAxisDiameter, ma, mb);
 }
 
 void drawDevices() {
@@ -289,7 +269,7 @@ String getArduinoPort() {
 }
 
 boolean looksLikeArduino(String s) {
-  return(s.startsWith("/dev/tty.usb") || s.equals("/dev/cu.SLAB_USBtoUART"));
+  return(s.startsWith("/dev/tty.usb") || s.equals("/dev/cu.SLAB_USBtoUART") || s.startsWith("/dev/ttyUSB"));
 }
 
 void addToConsole(String line) {
