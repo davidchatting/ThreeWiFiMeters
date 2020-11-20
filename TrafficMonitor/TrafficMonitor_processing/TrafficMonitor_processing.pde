@@ -16,17 +16,19 @@ HashMap<String,Device> devices = new HashMap<String,Device>();
 
 boolean positionAllocation[] = new boolean[60];
 
-Observations uploadTraffic = new Observations();
-Observations downloadTraffic = new Observations();
-
 long nowMs = 0;
 int currentInterval = 0;
 int frameRate = 60;
-//int tickIntervalMs = 1000;
 
-int cycles = 5;
+int updateSampleIntervalMs = 500;
+long updateSampleDueAtMs = 0;
+
+int cycles = 3 + 1;
 int samplesPerCycle = 60;
 int interval;
+
+Observations uploadTraffic = new Observations(cycles * 60 * 1000);
+Observations downloadTraffic = new Observations(cycles * 60 * 1000);
 
 PFont font;
 int textHeightPx = 10;
@@ -37,8 +39,9 @@ void setup() {
   frameRate(frameRate);
   noCursor();
   
-  size(320, 480, P2D);
-  smooth(8);
+  size(320, 480, JAVA2D);
+  background(0);
+  smooth(2);
   
   cx = int(width/2);
   cy = int(height-(width/2)) + 10;
@@ -66,22 +69,39 @@ void setup() {
     sniffer.bufferUntil('\n');
   }
   catch(Exception e) {}
+  
+  nowMs = (millis()/1000) * 1000;
+  println(nowMs);
 }
 
 void draw() {  
   background(0);
   
-  drawConsole(0, 0, consoleWidth, consoleHeight);
+  try {
+    drawConsole(0, 0, consoleWidth, consoleHeight);
+    
+    noFill();
+    stroke(20, 255);
+    circle(cx, cy, 8 );
+    circle(cx, cy, portalDiameter);
+    
+    drawSpiral(cx, cy, graphMaxDiameter);
+    strokeWeight(1);
+    drawDevices();
+  }
+  catch(Exception e) {}
   
-  noFill();
-  stroke(20, 255);
-  circle(cx, cy, portalDiameter);
-  
-  //drawGraph(cx, cy);
-  strokeWeight(3);
-  drawSpiral(cx, cy, graphMaxDiameter);
-  strokeWeight(2);
-  drawDevices();
+  update();
+}
+
+void update() {
+  if(sniffer != null && millis() > updateSampleDueAtMs) {
+    sniffer.write('x');
+    updateSampleDueAtMs = millis() + updateSampleIntervalMs;
+    
+    uploadTraffic.update();
+    downloadTraffic.update();
+  }
 }
 
 void drawConsole(int x, int y, int w, int h) {
@@ -92,11 +112,21 @@ void drawConsole(int x, int y, int w, int h) {
     s += console.get(n);
   }
   
+  for (Map.Entry me : devices.entrySet()) {
+    Device thisDevice = (Device) me.getValue();
+    
+    if(thisDevice.manufacturer != null && thisDevice.lastActiveMs > (millis() - 60000)) {
+      s += (thisDevice.macAddress + "  " + thisDevice.manufacturer + "\n");
+    }
+  }
+  
   text(s, x + 10, y);
 }
 
 
 void drawSpiral(int cx, int cy, int diameter) {
+  noFill();
+  
   int tickIntervalMs = 60000 / samplesPerCycle;
   int t = (int)(samplesPerCycle * (second()/60.0f));
   
@@ -110,18 +140,14 @@ void drawSpiral(int cx, int cy, int diameter) {
   
   float x, y;
   float da = (TWO_PI/samplesPerCycle);
-  int alpha;
   
   int n = (samplesPerCycle * cycles);
-  
-  noFill();
-  for (int i = 0 ; i <= n ; i++ ){
+  for (int i = samplesPerCycle ; i <= n ; i++ ){
+    r = i * step;
+    
     int dtSec = -1 * (n-i);
     
-    alpha = (i<samplesPerCycle/2)? 0 : 255;  //(int) map(i, 0, (samplesPerCycle * cycles), 0, 255);
-    
-    if(dtSec == 0) stroke(255, 0, 0, alpha);
-    else stroke(255, alpha);
+    strokeWeight(i/samplesPerCycle);
     
     float a = PI - (da*i);
     x = r * sin(a);
@@ -133,17 +159,26 @@ void drawSpiral(int cx, int cy, int diameter) {
     int up = uploadTraffic.count(startMs, endMs);
     int down = downloadTraffic.count(startMs, endMs);
     
-    drawTick(cx + x, cy + y, a, max(0.1f, normalise(up + down) * interval/2.0f));
-    r += step;
+    color c = color (0); 
+    float v = normalise(up + down) * interval/2.0f;
+    if(dtSec == 0) c = color(255, 0, 0);
+    //else if(dtSec%samplesPerCycle == 0) c = color(0, 0, 255);
+    else {
+      c = color((v == 0.0f)? 20 : 255);
+    }
+    drawTick(cx + x, cy + y, a, v, c);
   }
 }
 
-void drawTick(float cx, float cy, float a, float l) {
+void drawTick(float cx, float cy, float a, float l, color c) {
   float cxb, cyb;
+  
+  if(l == 0) l = 1.0f;//0.1f;
   
   cxb = cx + (l * sin(a));
   cyb = cy + (l * cos(a));
   
+  stroke(c);
   line(cx, cy, cxb, cyb);
 }
 
@@ -152,7 +187,7 @@ void drawDevices() {
   for (Map.Entry me : devices.entrySet()) {
     Device thisDevice = (Device) me.getValue();
     
-    if(thisDevice.lastActiveMs > (millis() - 60000)) {
+    if(thisDevice.manufacturer != null && thisDevice.lastActiveMs > (millis() - 60000)) {
       float a = map(thisDevice.position, 0, 60, 0, TWO_PI);
       int x = cx + (int)(devicesRingRadius * sin(a));
       int y = cy + (int)(devicesRingRadius * cos(a));
@@ -206,8 +241,6 @@ void serialEvent (Serial port) {
 }
 
 void addObservation(String macAddress, int uploadBytes, int downloadBytes) {  
-  String manufacturer = ouiTable.get(getOUI(macAddress));
-  
   if(true) {
   //if(macAddress.equals("A4:77:33:1B:C1:BC")){
   //if(manufacturer != null) {
@@ -218,11 +251,10 @@ void addObservation(String macAddress, int uploadBytes, int downloadBytes) {
     if(thisDevice == null) {
       byte mostSigByte = (byte) unhex(macAddress.split(":")[0]);
       
-      addToConsole(macAddress + " (" + manufacturer + ")\n");
-      
       thisDevice = new Device();
       thisDevice.macAddress = macAddress;
       thisDevice.position = allocatePosition(macAddress);
+      thisDevice.manufacturer = ouiTable.get(getOUI(macAddress));
       
       devices.put(macAddress, thisDevice);
     }
