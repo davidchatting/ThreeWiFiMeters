@@ -1,9 +1,10 @@
-//#include <ESP8266WiFi.h>
-
-//#include <DNSServer.h>
-//#include <WiFiManager.h>         //https://github.com/tzapu/WiFiManager
-
+#include <YoYoWiFiManager.h>
 #include <Approximate.h>
+#include "Settings.h"
+
+YoYoWiFiManager wifiManager;
+Settings *settings;
+
 Approximate approx;
 
 List<Device *> activeDevices;
@@ -11,22 +12,24 @@ const int maxActiveDevices = 512;
 
 void setup() {
   Serial.begin(115200);
-  
-//  WiFiManager wifiManager;  
-//  wifiManager.autoConnect("Traffic Monitor"); //blocks waiting for wifi to be configured
-//
-//  if (approx.init()) {
-//    approx.setActiveDeviceHandler(onActiveDevice);
-//    approx.start();
-//  }
 
-  if (approx.init("HackMyHouse", "loveofmoney")) {
-      approx.setActiveDeviceHandler(onActiveDevice);
-      approx.begin();
+  settings = new Settings(512); //Settings must be created here in Setup() as contains call to EEPROM.begin() which will otherwise fail
+  wifiManager.init(settings, onConnected);
+
+  wifiManager.begin("Instruments", "blinkblink");
+}
+
+void onConnected() {
+  wifiManager.end();
+  
+  if (approx.init()) {
+    approx.setActiveDeviceHandler(onActiveDevice);
+    approx.begin();
   }
 }
 
 void loop() {
+  wifiManager.loop();
   approx.loop();
 
   if(Serial.available()) serialEvent();
