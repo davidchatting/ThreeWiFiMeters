@@ -1,9 +1,9 @@
 #include <YoYoWiFiManager.h>
 #include <Approximate.h>
-#include "Settings.h"
+#include <YoYoSettings.h>
 
 YoYoWiFiManager wifiManager;
-Settings *settings;
+YoYoSettings *settings;
 
 Approximate approx;
 
@@ -13,10 +13,10 @@ const int maxActiveDevices = 512;
 void setup() {
   Serial.begin(115200);
 
-  settings = new Settings(512); //Settings must be created here in Setup() as contains call to EEPROM.begin() which will otherwise fail
+  settings = new YoYoSettings(512); //Settings must be created here in Setup() as contains call to EEPROM.begin() which will otherwise fail
   wifiManager.init(settings, onConnected);
 
-  wifiManager.begin("Instruments", "blinkblink");
+  wifiManager.begin("Home Network Study", "blinkblink");
 }
 
 void onConnected() {

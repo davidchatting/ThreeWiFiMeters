@@ -24,6 +24,7 @@ function configure(json) {
 
     populateNetworksList();
     //setInterval(populatePeersList, 3000);
+    populatePeersList();
 }
 
 function onKeyPressed(event) {
@@ -44,7 +45,7 @@ function populateNetworksList(selectedNetwork) {
                 return i.SSID;
             });
 
-            //The selected networkw will always remain:
+            //The selected network will always remain:
             if(selectedNetwork && !ssidList.includes(selectedNetwork)) ssidList.push(selectedNetwork); 
 
             $.each(ssidList, function (key, entry) {
@@ -74,27 +75,19 @@ function populatePeersList() {
     let peers = $('#peers-list');
 
     $.getJSON('/yoyo/peers', function (json) {
-        alert(json);
-        /*
-        networks.empty();
-        $.each(json, function (key, entry) {
-            let network = $('<option></option>');
-
-            network.attr('value', entry.SSID).text(entry.SSID);
-            if(entry.SSID == selectedNetwork) network.attr('selected', true);
-
-            networks.append(network);
-        });
-
-        if($('#networks-list-select option').length > 0) {
-            $('#networks-list-select').attr('disabled', false);
-            $('#password').attr('disabled', false);
+        if(json.length > 0) {
+            console.log(json);
+            /*
+            $.each(ssidList, function (key, entry) {
+                let network = $('<option></option>');
+    
+                network.attr('value', entry).text(entry);
+                if(entry == selectedNetwork) network.attr('selected', true);
+    
+                networks.append(network);
+            });
+            */
         }
-        else {
-            networks.append('<option>No Networks Found</option>');
-            setTimeout(populateNetworksList, 10000);
-        }
-        */
     });
 }
 

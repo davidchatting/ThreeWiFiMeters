@@ -1,3 +1,109 @@
+#include <YoYoWiFiManager.h>
+#include <Approximate.h>
+#include <YoYoSettings.h>
+
+YoYoWiFiManager wifiManager;
+YoYoSettings *settings;
+
+Approximate approx;
+
+//Define for your board, not all have built-in LED:
+#if defined(ESP8266)
+  const int LED_PIN = 14;
+#elif defined(ESP32)
+  const int LED_PIN = 2;
+#endif
+
+const int motorPinA = 4;
+const int motorPinB = 5;
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(LED_PIN, OUTPUT);
+
+  pinMode(motorPinA, OUTPUT);
+  pinMode(motorPinB, OUTPUT);
+  setMotorSpeed(0);
+
+  settings = new YoYoSettings(512); //Settings must be created here in Setup() as contains call to EEPROM.begin() which will otherwise fail
+  wifiManager.init(settings, onConnected);
+
+  const char *macAddress = (*settings)["pair"];
+  if(macAddress) setPair(macAddress);
+
+  wifiManager.begin("Home Network Study", "blinkblink");
+}
+
+void onConnected() {
+  wifiManager.end();
+  
+  if (approx.init()) {
+    approx.setProximateDeviceHandler(onProximateDevice, APPROXIMATE_PERSONAL_RSSI, /*lastSeenTimeoutMs*/ 0);
+    approx.setActiveDeviceHandler(onActiveDevice, /*inclusive*/ false);
+    approx.begin();
+  }
+}
+
+void loop() {
+  wifiManager.loop();
+  approx.loop();
+}
+
+void onProximateDevice(Device *device, Approximate::DeviceEvent event) {
+  switch (event) {
+    case Approximate::ARRIVE:
+      char macAdddress[18];
+      device -> getMacAddressAs_c_str(macAdddress);
+      (*settings)["pair"] = macAdddress;
+      settings->save();
+      setPair(macAdddress);
+      break;
+    case Approximate::DEPART:
+      break;
+  }
+}
+
+void setPair(const char *macAddress) {
+  Serial.printf("Paired with: %s\n", macAddress);
+  approx.setActiveDeviceFilter(macAddress);
+}
+
+void onActiveDevice(Device *device, Approximate::DeviceEvent event) {
+  int payloadSizeByte = device -> getPayloadSizeBytes();
+  if(device -> isDownloading()) payloadSizeByte *= -1;
+  
+  setMotorSpeed(payloadSizeByte);
+}
+
+void setMotorSpeed(int v) {
+  v = constrain(v, -1024, 1024);
+  
+  float valueA = 0;
+  float valueB = 0;
+
+  if(v != 0) {
+    if(v > 0) {
+      valueA = v;
+      valueB = 0;
+  
+      digitalWrite(motorPinA, HIGH);
+      digitalWrite(motorPinB, LOW);
+    }
+    else {
+      valueA = 0;
+      valueB = abs(v);
+  
+      digitalWrite(motorPinA, LOW);
+      digitalWrite(motorPinB, HIGH);
+    }
+    delay(25);
+  }
+  
+  analogWrite(motorPinA, valueA);
+  analogWrite(motorPinB, valueB);
+}
+
+/*
 //Sniffing code based on Kosme and Ray Burnette's work > https://www.hackster.io/kosme/esp8266-sniffer-9e4770
 
 #include <Arduino.h>
@@ -21,8 +127,6 @@ String pairedMacAddress;
 
 const int sampleIntervalMs = 250;
 int nextSampleDueMs = 0;
-const int motorPinA = 4;
-const int motorPinB = 5;
 const int ledPin = 2;     
 
 const int minSpeed = 250;
@@ -117,43 +221,4 @@ void setup() {
   digitalWrite(LED_BUILTIN, HIGH);     //lights on LOW
   digitalWrite(ledPin, LOW);
 }
-
-void loop() {
-    unsigned long now = millis();
-    if(now > nextSampleDueMs) {
-      setMotorSpeed(bytesRunningTotal * 1.0f);
-      bytesRunningTotal = 0;
-      
-      nextSampleDueMs = now + sampleIntervalMs;
-
-      digitalWrite(ledPin, LOW);
-    }
-}
-
-void setMotorSpeed(int v) {
-  v = constrain(v, -1024, 1024);
-  
-  float valueA = 0;
-  float valueB = 0;
-
-  if(v != 0) {
-    if(v > 0) {
-      valueA = v;
-      valueB = 0;
-  
-      digitalWrite(motorPinA, HIGH);
-      digitalWrite(motorPinB, LOW);
-    }
-    else {
-      valueA = 0;
-      valueB = abs(v);
-  
-      digitalWrite(motorPinA, LOW);
-      digitalWrite(motorPinB, HIGH);
-    }
-    delay(25);
-  }
-  
-  analogWrite(motorPinA, valueA);
-  analogWrite(motorPinB, valueB);
-}
+*/
