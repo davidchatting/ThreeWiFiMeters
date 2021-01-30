@@ -6,33 +6,39 @@ YoYoSettings *settings;
 
 const int gaguePin = 5;
 const int ledPin = 12;
-const int ledLevel = 64;
 
 const int minRSSI = -100;
 const int maxRSSI = -20;
 
 void setup() {
-  pinMode(ledPin, OUTPUT);
-  analogWrite(ledPin, ledLevel);
-  
   Serial.begin(115200);
+
+  analogWrite(gaguePin, 255);
+  delay(150);
+  analogWrite(gaguePin, 0);
   
   settings = new YoYoSettings(512); //Settings must be created here in Setup() as contains call to EEPROM.begin() which will otherwise fail
-  wifiManager.init(settings);
+  wifiManager.init(settings, onceConnected, NULL, NULL, false, 80, ledPin, HIGH);
 
   wifiManager.begin("Home Network Study", "blinkblink");
+}
+
+void onceConnected() {
+  for(int i=0; i<3; ++i) {
+    wifiManager.setWifiLED(HIGH);
+    delay(150);
+    wifiManager.setWifiLED(LOW);
+    delay(150);
+  }
 }
 
 void loop() {
   if(wifiManager.loop() == YY_CONNECTED) {
     int32_t rssi = getRSSI(WiFi.SSID());
     if(rssi == 0){
-      analogWrite(ledPin, ledLevel);
       analogWrite(gaguePin, 0);
     }
     else{
-      analogWrite(ledPin, 0);
-      
       int valueToDisplay = map(rssi, maxRSSI, minRSSI, 255, 0);
       valueToDisplay = min(max(valueToDisplay, 0), 255);
   
@@ -43,6 +49,9 @@ void loop() {
       
       analogWrite(gaguePin, valueToDisplay);
     }
+  }
+  else{
+    analogWrite(gaguePin, 0);
   }
 }
 

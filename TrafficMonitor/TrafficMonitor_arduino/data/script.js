@@ -1,4 +1,5 @@
 var maxWifiNetworks = 5;
+var peers = [];
 
 function init() {
     $('#config').hide();
@@ -14,6 +15,10 @@ function init() {
     $.getJSON('/yoyo/credentials', function (json) {
         $('#config').show();
         configure(json);
+    }).fail(function() {
+        $('#alert-text').show();
+        $('#alert-text').addClass('alert-danger');
+        $('#alert-text').text('Error');
     });
 }
 
@@ -23,7 +28,7 @@ function configure(json) {
     console.log(json);
 
     populateNetworksList();
-    //setInterval(populatePeersList, 3000);
+    populatePeersList();
 }
 
 function onKeyPressed(event) {
@@ -44,7 +49,7 @@ function populateNetworksList(selectedNetwork) {
                 return i.SSID;
             });
 
-            //The selected networkw will always remain:
+            //The selected network will always remain:
             if(selectedNetwork && !ssidList.includes(selectedNetwork)) ssidList.push(selectedNetwork); 
 
             $.each(ssidList, function (key, entry) {
@@ -71,31 +76,41 @@ function populateNetworksList(selectedNetwork) {
 }
 
 function populatePeersList() {
-    let peers = $('#peers-list');
-
     $.getJSON('/yoyo/peers', function (json) {
-        alert(json);
-        /*
-        networks.empty();
-        $.each(json, function (key, entry) {
-            let network = $('<option></option>');
+        if(json.length > 0) {
+            var newPeers = json.map(i => { return i.IP;});
+            newPeers.forEach(ip => { if(!peers.includes(ip)) addPeer(ip); });
+            peers.forEach(ip => { if(!newPeers.includes(ip)) removePeer(ip); });
 
-            network.attr('value', entry.SSID).text(entry.SSID);
-            if(entry.SSID == selectedNetwork) network.attr('selected', true);
-
-            networks.append(network);
-        });
-
-        if($('#networks-list-select option').length > 0) {
-            $('#networks-list-select').attr('disabled', false);
-            $('#password').attr('disabled', false);
+            peers = newPeers;
         }
-        else {
-            networks.append('<option>No Networks Found</option>');
-            setTimeout(populateNetworksList, 10000);
-        }
-        */
     });
+
+    setTimeout(function() {
+        populatePeersList();
+    }, 15000);
+}
+
+function addPeer(ip) {
+    console.log("addPeer > " + ip);
+
+    let peersListDiv = $('#peers-list');
+
+    let span = $('<span></span>');
+    span.attr('id', ip);
+
+    let image = $('<img></img>');
+    image.attr('class', 'peer-image');
+    image.attr('src', "http://" + ip + "/icon.svg");
+
+    peersListDiv.append(span);
+    span.append(image);
+}
+
+function removePeer(ip) {
+    console.log("removePeer > " + ip);
+
+    $('span[id="' + ip + '"]').remove();
 }
 
 function onSaveButtonClicked(event) {

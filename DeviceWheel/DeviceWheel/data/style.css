@@ -37,5 +37,15 @@ canvas {
 }
 
 .dropdown-menu.pull-left {
-  left:0;
+  left: 0;
+}
+
+.peers {
+  height: 130px;
+}
+
+.peer-image {
+  height: 100%;
+  padding-left: 10px;
+  padding-right: 10px;
 }

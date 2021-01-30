@@ -1,4 +1,5 @@
 var maxWifiNetworks = 5;
+var peers = [];
 
 function init() {
     $('#config').hide();
@@ -14,6 +15,10 @@ function init() {
     $.getJSON('/yoyo/credentials', function (json) {
         $('#config').show();
         configure(json);
+    }).fail(function() {
+        $('#alert-text').show();
+        $('#alert-text').addClass('alert-danger');
+        $('#alert-text').text('Error');
     });
 }
 
@@ -23,7 +28,6 @@ function configure(json) {
     console.log(json);
 
     populateNetworksList();
-    //setInterval(populatePeersList, 3000);
     populatePeersList();
 }
 
@@ -72,23 +76,41 @@ function populateNetworksList(selectedNetwork) {
 }
 
 function populatePeersList() {
-    let peers = $('#peers-list');
-
     $.getJSON('/yoyo/peers', function (json) {
         if(json.length > 0) {
-            console.log(json);
-            /*
-            $.each(ssidList, function (key, entry) {
-                let network = $('<option></option>');
-    
-                network.attr('value', entry).text(entry);
-                if(entry == selectedNetwork) network.attr('selected', true);
-    
-                networks.append(network);
-            });
-            */
+            var newPeers = json.map(i => { return i.IP;});
+            newPeers.forEach(ip => { if(!peers.includes(ip)) addPeer(ip); });
+            peers.forEach(ip => { if(!newPeers.includes(ip)) removePeer(ip); });
+
+            peers = newPeers;
         }
     });
+
+    setTimeout(function() {
+        populatePeersList();
+    }, 15000);
+}
+
+function addPeer(ip) {
+    console.log("addPeer > " + ip);
+
+    let peersListDiv = $('#peers-list');
+
+    let span = $('<span></span>');
+    span.attr('id', ip);
+
+    let image = $('<img></img>');
+    image.attr('class', 'peer-image');
+    image.attr('src', "http://" + ip + "/icon.svg");
+
+    peersListDiv.append(span);
+    span.append(image);
+}
+
+function removePeer(ip) {
+    console.log("removePeer > " + ip);
+
+    $('span[id="' + ip + '"]').remove();
 }
 
 function onSaveButtonClicked(event) {

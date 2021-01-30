@@ -7,6 +7,8 @@ YoYoSettings *settings;
 
 Approximate approx;
 
+const int ledPin = 2;
+
 List<Device *> activeDevices;
 const int maxActiveDevices = 512;
 
@@ -14,12 +16,18 @@ void setup() {
   Serial.begin(115200);
 
   settings = new YoYoSettings(512); //Settings must be created here in Setup() as contains call to EEPROM.begin() which will otherwise fail
-  wifiManager.init(settings, onConnected);
+  wifiManager.init(settings, onceConnected, NULL, NULL, false, 80, ledPin, LOW);
 
   wifiManager.begin("Home Network Study", "blinkblink");
 }
 
-void onConnected() {
+void onceConnected() {
+  for(int i=0; i<3; ++i) {
+    wifiManager.setWifiLED(HIGH);
+    delay(150);
+    wifiManager.setWifiLED(LOW);
+    delay(150);
+  }
   wifiManager.end();
   
   if (approx.init()) {
