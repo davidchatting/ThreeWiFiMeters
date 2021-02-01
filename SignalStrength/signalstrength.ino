@@ -7,7 +7,7 @@ YoYoSettings *settings;
 const int gaguePin = 5;
 const int ledPin = 12;
 
-const int minRSSI = -100;
+const int minRSSI = -80;
 const int maxRSSI = -20;
 
 void setup() {
