@@ -301,7 +301,7 @@ String getArduinoPort() {
 }
 
 boolean looksLikeArduino(String s) {
-  return(s.startsWith("/dev/tty.usb") || s.equals("/dev/cu.SLAB_USBtoUART") || s.startsWith("/dev/ttyUSB"));
+  return(s.equals("/dev/serial0") || s.startsWith("/dev/tty.usb") || s.equals("/dev/cu.SLAB_USBtoUART") || s.startsWith("/dev/ttyUSB"));
 }
 
 void addToConsole(String line) {
