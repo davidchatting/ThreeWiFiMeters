@@ -37,10 +37,17 @@ void onceConnected() {
 }
 
 void loop() {
-  wifiManager.loop();
+  uint8_t wifiStatus = wifiManager.loop();
   approx.loop();
 
-  if(Serial.available()) serialEvent();
+  if(Serial.available()) {
+    if(wifiStatus == YY_CONNECTED) {
+      serialEvent();
+    }
+    else {
+      Serial.flush();
+    }
+  }
 }
 
 void onActiveDevice(Device *device, Approximate::DeviceEvent event) {
