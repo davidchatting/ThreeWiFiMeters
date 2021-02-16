@@ -71,7 +71,6 @@ void setup() {
   catch(Exception e) {}
   
   nowMs = (millis()/1000) * 1000;
-  println(nowMs);
 }
 
 void draw() {  
@@ -193,7 +192,7 @@ void drawDevices() {
       int y = cy + (int)(devicesRingRadius * cos(a));
       
       stroke(255);
-      if(thisDevice.lastActiveMs > (millis() - (1000/frameRate))) {
+      if(thisDevice.lastActiveMs > (millis() - (1000 * 0.3f))) {
         fill(255);
       }
       else noFill();
@@ -234,35 +233,34 @@ float log10 (float x) {
 void serialEvent (Serial port) {
   String reading = port.readStringUntil('\n');
 
-  if (reading != null && reading.startsWith("[aprx]")) {
-    String s[] = reading.split("\t");  //[aprx]  54:60:09:E4:B0:BC  2324    
-    addObservation(s[1].trim(), int(s[2].trim()), int(s[3].trim()));
+  if (reading != null && reading.startsWith("[aprx]")) {    
+    String s[] = reading.split("\t");  //[aprx]  YY_IDLE_STATUS  54:60:09:E4:B0:BC  2324
+    if(s.length == 5) {
+      addObservation(s[2].trim(), int(s[3].trim()), int(s[4].trim()));
+    }
+    else {
+      println(reading.trim());
+    }
   }
 }
 
-void addObservation(String macAddress, int uploadBytes, int downloadBytes) {  
-  if(true) {
-  //if(macAddress.equals("A4:77:33:1B:C1:BC")){
-  //if(manufacturer != null) {
-    //println(uploadBytes + "  " + downloadBytes);
+void addObservation(String macAddress, int uploadBytes, int downloadBytes) {    
+  long now =  millis();
+  Device thisDevice = devices.get(macAddress);
+  if(thisDevice == null) {
+    byte mostSigByte = (byte) unhex(macAddress.split(":")[0]);
     
-    long now =  millis();
-    Device thisDevice = devices.get(macAddress);
-    if(thisDevice == null) {
-      byte mostSigByte = (byte) unhex(macAddress.split(":")[0]);
-      
-      thisDevice = new Device();
-      thisDevice.macAddress = macAddress;
-      thisDevice.position = allocatePosition(macAddress);
-      thisDevice.manufacturer = ouiTable.get(getOUI(macAddress));
-      
-      devices.put(macAddress, thisDevice);
-    }
-    thisDevice.lastActiveMs = now;
+    thisDevice = new Device();
+    thisDevice.macAddress = macAddress;
+    thisDevice.position = allocatePosition(macAddress);
+    thisDevice.manufacturer = ouiTable.get(getOUI(macAddress));
     
-    uploadTraffic.add(uploadBytes, now);
-    downloadTraffic.add(downloadBytes, now);
+    devices.put(macAddress, thisDevice);
   }
+  thisDevice.lastActiveMs = now;
+  
+  uploadTraffic.add(uploadBytes, now);
+  downloadTraffic.add(downloadBytes, now);
 }
 
 int getOUI(String macAddress) {
