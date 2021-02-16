@@ -13,13 +13,16 @@ class Observations {
   }
   
   void update() {
-    for (int i = 0; i < traffic.size();) {
-      Observation o = traffic.get(i);
-      if((millis() - durationMs) > o.timeMs) {
-        traffic.remove(i);
+    try {
+      for (int i = 0; i < traffic.size();) {
+        Observation o = traffic.get(i);
+        if((millis() - durationMs) > o.timeMs) {
+          traffic.remove(i);
+        }
+        else i++;
       }
-      else i++;
     }
+    catch(Exception e) {}
   }
   
   int count(long startMs, long endMs) {
