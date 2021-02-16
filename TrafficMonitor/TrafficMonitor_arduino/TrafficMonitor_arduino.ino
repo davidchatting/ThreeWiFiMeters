@@ -41,12 +41,7 @@ void loop() {
   approx.loop();
 
   if(Serial.available()) {
-    if(wifiStatus == YY_CONNECTED) {
-      serialEvent();
-    }
-    else {
-      Serial.flush();
-    }
+    serialEvent();
   }
 }
 
@@ -65,12 +60,20 @@ void serialEvent() {
       Device *activeDevice = NULL;
       char macAddress[18];
       
-      while (activeDevices.Count() > 0) {
-        activeDevice = activeDevices[0];
-        
-        Serial.printf("[aprx]\t%s\t%i\t%i\n", activeDevice->getMacAddressAs_c_str(macAddress), activeDevice->getUploadSizeBytes(), activeDevice->getDownloadSizeBytes());
-        activeDevices.Remove(0);
-        delete activeDevice;
+      char status[32];
+      wifiManager.getStatusAsString(status);
+
+      if(activeDevices.Count() > 0) {
+        while (activeDevices.Count() > 0) {
+          activeDevice = activeDevices[0];
+          
+          Serial.printf("[aprx]\t%s\t%s\t%i\t%i\n", status, activeDevice->getMacAddressAs_c_str(macAddress), activeDevice->getUploadSizeBytes(), activeDevice->getDownloadSizeBytes());
+          activeDevices.Remove(0);
+          delete activeDevice;
+        }
+      }
+      else {
+        Serial.printf("[aprx]\t%s\n", status);
       }
     }
   }
