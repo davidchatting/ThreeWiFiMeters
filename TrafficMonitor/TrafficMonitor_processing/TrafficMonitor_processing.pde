@@ -219,15 +219,12 @@ float normalise(int v) {
   float result = 0.0f;
   
   if(v > 0) {
-    //result = min(1.0f, map(log10(v), 0, 6, 0, 1));
-    result = min(1.0f, map(v, 0, 262144, 0, 1));
+    //approximation of the sigmoid function:
+    result = map(v, 0, 2048, -6.0f, 6.0f);
+    result = map(result / (1.0f + abs(result)), -1.0f, 1.0f, 0.0f, 1.0f);
   }
   
   return(result);
-}
-
-float log10 (float x) {
-  return (log(x) / log(10));
 }
 
 void serialEvent (Serial port) {
@@ -237,9 +234,6 @@ void serialEvent (Serial port) {
     String s[] = reading.split("\t");  //[aprx]  YY_IDLE_STATUS  54:60:09:E4:B0:BC  2324
     if(s.length == 5) {
       addObservation(s[2].trim(), int(s[3].trim()), int(s[4].trim()));
-    }
-    else {
-      println(reading.trim());
     }
   }
 }
