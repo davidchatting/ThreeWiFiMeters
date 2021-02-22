@@ -119,7 +119,7 @@ void drawConsole(int x, int y, int w, int h) {
     }
   }
   
-  text(s, x + 10, y);
+  text(s, x + 10, y + textHeightPx);
 }
 
 
