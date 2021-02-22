@@ -44,7 +44,7 @@ void onceConnected() {
   wifiManager.end();
   
   if (approx.init()) {
-    approx.setProximateDeviceHandler(onProximateDevice, APPROXIMATE_PERSONAL_RSSI, /*lastSeenTimeoutMs*/ 0);
+    approx.setProximateDeviceHandler(onProximateDevice, APPROXIMATE_INTIMATE_RSSI, /*lastSeenTimeoutMs*/ 3000);
     approx.setActiveDeviceHandler(onActiveDevice, /*inclusive*/ false);
     approx.begin();
   }
