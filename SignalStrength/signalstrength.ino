@@ -4,7 +4,7 @@
     -
     David Chatting - github.com/davidchatting/ThreeWiFiMeters
     MIT License - Copyright (c) March 2021
-    Example documented here > https://github.com/davidchatting/ThreeWiFiMeters/tree/master#signal-strength
+    Documented here > https://github.com/davidchatting/ThreeWiFiMeters/tree/master#signal-strength
 */
 
 #include <YoYoWiFiManager.h>

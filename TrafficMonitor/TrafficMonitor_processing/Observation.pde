@@ -3,7 +3,7 @@
     -
     David Chatting - github.com/davidchatting/ThreeWiFiMeters
     MIT License - Copyright (c) March 2021
-    Example documented here > https://github.com/davidchatting/ThreeWiFiMeters/tree/master#traffic-monitor
+    Documented here > https://github.com/davidchatting/ThreeWiFiMeters/tree/master#traffic-monitor
 */
 
 class Observation {
