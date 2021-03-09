@@ -1,3 +1,12 @@
+
+/*
+    Three WiFi Meters - Signal Strength
+    -
+    David Chatting - github.com/davidchatting/ThreeWiFiMeters
+    MIT License - Copyright (c) March 2021
+    Example documented here > https://github.com/davidchatting/Approximate/tree/master#signal-strength
+*/
+
 #include <YoYoWiFiManager.h>
 #include <YoYoSettings.h>
 

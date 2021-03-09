@@ -1,3 +1,11 @@
+/*
+    Three WiFi Meters - Traffic Monitor
+    -
+    David Chatting - github.com/davidchatting/ThreeWiFiMeters
+    MIT License - Copyright (c) March 2021
+    Example documented here > https://github.com/davidchatting/Approximate/tree/master#traffic-monitor
+*/
+
 class Observations {
   private int durationMs = 0; 
   private ArrayList<Observation> traffic = new ArrayList<Observation>();
