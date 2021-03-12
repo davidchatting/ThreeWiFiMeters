@@ -5,8 +5,8 @@ The meters works with 2.4GHz WiFi networks, but not 5GHz networks - as neither E
 
 The Three WiFi Meters were created by David Chatting ([@davidchatting](https://twitter.com/davidchatting)) as part of the [A Network of One's Own](http://davidchatting.com/nooo/) project. This code is licensed under the [MIT License](LICENSE.txt).
 
-## Signal Strength
+## <img src="./images/SignalStrength.svg" height=30px> Signal Strength
 
-## Device Wheel
+## <img src="./images/DeviceWheel.svg" height=30px> Device Wheel
 
-## Traffic Monitor
+## <img src="./images/TrafficMonitor.svg" height=30px> Traffic Monitor
