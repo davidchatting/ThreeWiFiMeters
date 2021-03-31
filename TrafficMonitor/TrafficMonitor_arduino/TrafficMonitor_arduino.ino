@@ -23,19 +23,16 @@ const int maxActiveDevices = 512;
 void setup() {
   Serial.begin(115200);
 
+  pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, LOW);
+
   settings = new YoYoSettings(512); //Settings must be created here in Setup() as contains call to EEPROM.begin() which will otherwise fail
-  wifiManager.init(settings, onceConnected, NULL, NULL, false, 80, ledPin, HIGH);
+  wifiManager.init(settings, onceConnected, NULL, NULL, false, 80, -1);
 
   wifiManager.begin("Home Network Study", "blinkblink");
 }
 
 void onceConnected() {
-  for(int i=0; i<3; ++i) {
-    wifiManager.setWifiLED(HIGH);
-    delay(150);
-    wifiManager.setWifiLED(LOW);
-    delay(150);
-  }
   wifiManager.end();
   
   if (approx.init()) {
@@ -48,9 +45,27 @@ void loop() {
   uint8_t wifiStatus = wifiManager.loop();
   approx.loop();
 
+  if(approx.isRunning()) {
+    digitalWrite(ledPin, HIGH);
+  }
+  else {
+    switch(wifiStatus) {
+      case YY_CONNECTED_PEER_SERVER:
+        digitalWrite(ledPin, blink(500));
+        break;
+      default:
+        digitalWrite(ledPin, blink(1000));
+        break;
+    }
+  }
+
   if(Serial.available()) {
     serialEvent();
   }
+}
+
+bool blink(int periodMs) {
+  return(((millis() / periodMs) % 2) == 0);
 }
 
 void onActiveDevice(Device *device, Approximate::DeviceEvent event) {

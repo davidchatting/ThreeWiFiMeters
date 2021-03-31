@@ -13,8 +13,14 @@
 YoYoWiFiManager wifiManager;
 YoYoSettings *settings;
 
-const int gaguePin = 5;
 const int ledPin = 12;
+const int gaguePin = 5;
+
+#if defined(ESP8266)
+
+#elif defined(ESP32)
+  const int gagueChannel = 0;
+#endif
 
 const int minRSSI = -80;
 const int maxRSSI = -20;
@@ -22,45 +28,64 @@ const int maxRSSI = -20;
 void setup() {
   Serial.begin(115200);
 
-  analogWrite(gaguePin, 255);
+  pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, LOW);
+
+  #if defined(ESP32)
+    ledcSetup(gagueChannel, 1000, 8);
+    ledcAttachPin(gaguePin, gagueChannel);
+  #endif
+
+  digitalWrite(gaguePin, HIGH);
   delay(150);
-  analogWrite(gaguePin, 0);
+  digitalWrite(gaguePin, LOW);
   
   settings = new YoYoSettings(512); //Settings must be created here in Setup() as contains call to EEPROM.begin() which will otherwise fail
-  wifiManager.init(settings, onceConnected, NULL, NULL, false, 80, ledPin, HIGH);
+  wifiManager.init(settings, onceConnected, NULL, NULL, false, 80, -1);
 
   wifiManager.begin("Home Network Study", "blinkblink");
 }
 
 void onceConnected() {
-  for(int i=0; i<3; ++i) {
-    wifiManager.setWifiLED(HIGH);
-    delay(150);
-    wifiManager.setWifiLED(LOW);
-    delay(150);
-  }
 }
 
 void loop() {
-  if(wifiManager.loop() == YY_CONNECTED) {
-    int32_t rssi = getRSSI(WiFi.SSID());
-    if(rssi == 0){
-      analogWrite(gaguePin, 0);
-    }
-    else{
-      int valueToDisplay = map(rssi, maxRSSI, minRSSI, 255, 0);
-      valueToDisplay = min(max(valueToDisplay, 0), 255);
-  
-      Serial.print(rssi);
-      Serial.print("\t");
-      Serial.print(valueToDisplay);
-      Serial.print("\n");
-      
-      analogWrite(gaguePin, valueToDisplay);
-    }
+  uint8_t wifiStatus = wifiManager.loop();
+
+  switch(wifiStatus) {
+    case YY_CONNECTED:
+      digitalWrite(ledPin, HIGH);
+      displayRSSI();
+      break;
+    case YY_CONNECTED_PEER_SERVER:
+      digitalWrite(ledPin, blink(500));
+      digitalWrite(gaguePin, LOW);
+      break;
+    default:
+      digitalWrite(ledPin, blink(1000));
+      digitalWrite(gaguePin, LOW);
+      break;
+  }
+}
+
+bool blink(int periodMs) {
+  return(((millis() / periodMs) % 2) == 0);
+}
+
+void displayRSSI() {
+  int32_t rssi = getRSSI(WiFi.SSID());
+  if(rssi == 0){
+    digitalWrite(gaguePin, LOW);
   }
   else{
-    analogWrite(gaguePin, 0);
+    int valueToDisplay = map(rssi, maxRSSI, minRSSI, 255, 0);
+    valueToDisplay = min(max(valueToDisplay, 0), 255);
+    
+    #if defined(ESP32)
+      ledcWrite(gagueChannel, valueToDisplay);
+    #else
+      analogWrite(gaguePin, valueToDisplay);
+    #endif
   }
 }
 

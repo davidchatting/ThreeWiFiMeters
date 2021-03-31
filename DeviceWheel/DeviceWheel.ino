@@ -19,37 +19,46 @@ Approximate approx;
 const int ledPin = 2;
 const int motorPinA = 4;
 const int motorPinB = 5;
+#if defined(ESP32)
+  const int motorChannelA = 0;
+  const int motorChannelB = 1;
+#endif
 
 int targetMotorSpeed = 0;
 const unsigned int motorUpdateIntervalMs = 250;
 long nextMotorUpdateAtMs = 0;
 
+bool newPair = false;
+
 void setup() {
   Serial.begin(115200);
 
+  pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, LOW);
+
   pinMode(motorPinA, OUTPUT);
   pinMode(motorPinB, OUTPUT);
+  #if defined(ESP32)
+    ledcSetup(motorChannelA, 1000, 8);
+    ledcSetup(motorChannelB, 1000, 8);
+    ledcAttachPin(motorPinA, motorChannelA);
+    ledcAttachPin(motorPinB, motorChannelB);
+  #endif
 
   setMotorSpeed(1024);
   delay(25);
   setMotorSpeed(0);
 
   settings = new YoYoSettings(512); //Settings must be created here in Setup() as contains call to EEPROM.begin() which will otherwise fail
-  wifiManager.init(settings, onceConnected, NULL, NULL, false, 80, ledPin, HIGH);
+  wifiManager.init(settings, onceConnected, NULL, NULL, false, 80, -1);
 
-  const char *macAddress = (*settings)["pair"];
-  if(macAddress) setPair(macAddress);
+//  const char *macAddress = (*settings)["pair"];
+//  if(macAddress) setPair(macAddress);
 
   wifiManager.begin("Home Network Study", "blinkblink");
 }
 
 void onceConnected() {
-  for(int i=0; i<3; ++i) {
-    wifiManager.setWifiLED(HIGH);
-    delay(150);
-    wifiManager.setWifiLED(LOW);
-    delay(150);
-  }
   wifiManager.end();
   
   if (approx.init()) {
@@ -60,16 +69,40 @@ void onceConnected() {
 }
 
 void loop() {
-  wifiManager.loop();
+  uint8_t wifiStatus = wifiManager.loop();
   approx.loop();
 
+  if(approx.isRunning()) {
+    if(!newPair) digitalWrite(ledPin, HIGH);
+    else {
+      digitalWrite(ledPin, LOW);
+      delay(200);
+      digitalWrite(ledPin, HIGH);
+      newPair = false;
+    }
+  }
+  else {
+    switch(wifiStatus) {
+      case YY_CONNECTED_PEER_SERVER:
+        digitalWrite(ledPin, blink(500));
+        break;
+      default:
+        digitalWrite(ledPin, blink(1000));
+        break;
+    }
+  }
+
   updateMotorSpeed();
+}
+
+bool blink(int periodMs) {
+  return(((millis() / periodMs) % 2) == 0);
 }
 
 void onProximateDevice(Device *device, Approximate::DeviceEvent event) {
   switch (event) {
     case Approximate::ARRIVE:
-      wifiManager.setWifiLED(HIGH);
+      newPair = true;
       char macAdddress[18];
       device -> getMacAddressAs_c_str(macAdddress);
       (*settings)["pair"] = macAdddress;
@@ -77,7 +110,6 @@ void onProximateDevice(Device *device, Approximate::DeviceEvent event) {
       setPair(macAdddress);
       break;
     case Approximate::DEPART:
-      wifiManager.setWifiLED(LOW);
       break;
   }
 }
@@ -130,7 +162,12 @@ void setMotorSpeed(int v) {
     }
     delay(25);
   }
-  
-  analogWrite(motorPinA, valueA);
-  analogWrite(motorPinB, valueB);
+
+  #if defined(ESP32)
+    ledcWrite(motorChannelA, valueA);
+    ledcWrite(motorChannelB, valueB);
+  #else
+    analogWrite(motorPinA, valueA);
+    analogWrite(motorPinB, valueB);
+  #endif
 }
