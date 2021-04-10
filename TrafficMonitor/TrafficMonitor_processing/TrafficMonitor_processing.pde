@@ -18,6 +18,7 @@ int graphMaxDiameter;
 int graphAxisDiameter;
 
 Serial sniffer;
+boolean serialIsConnected = false;
 
 HashMap<Integer,String> ouiTable = new HashMap<Integer,String>();
 HashMap<String,Device> devices = new HashMap<String,Device>();
@@ -62,7 +63,7 @@ void setup() {
   graphMinDiameter = 32;
   graphMaxDiameter = portalDiameter - 32;
   
-  graphAxisDiameter = 64;  //graphMinDiameter + (graphMaxDiameter - graphMinDiameter)/2;
+  graphAxisDiameter = 64;
   
   consoleWidth = width;
   consoleHeight = cy - (portalDiameter/2);
@@ -79,6 +80,7 @@ void setup() {
   catch(Exception e) {}
   
   nowMs = (millis()/1000) * 1000;
+  addToConsole("-\n");
 }
 
 void draw() {  
@@ -238,11 +240,13 @@ float normalise(int v) {
 void serialEvent (Serial port) {
   String reading = port.readStringUntil('\n');
 
-  if (reading != null && reading.startsWith("[aprx]")) {    
+  if (reading != null && reading.startsWith("[aprx]")) {   
     String s[] = reading.split("\t");  //[aprx]  YY_IDLE_STATUS  54:60:09:E4:B0:BC  2324
     if(s.length == 5) {
       addObservation(s[2].trim(), int(s[3].trim()), int(s[4].trim()));
     }
+    
+    serialIsConnected = true;
   }
 }
 
@@ -257,7 +261,10 @@ void addObservation(String macAddress, int uploadBytes, int downloadBytes) {
     thisDevice.position = allocatePosition(macAddress);
     thisDevice.manufacturer = ouiTable.get(getOUI(macAddress));
     
-    devices.put(macAddress, thisDevice);
+    //Ignore other ESP devices
+    if(!thisDevice.manufacturer.equals("Espressif")) {
+       devices.put(macAddress, thisDevice);
+    }
   }
   thisDevice.lastActiveMs = now;
   
@@ -295,7 +302,7 @@ String getArduinoPort() {
       port = serialList[n];
     }
   }
-  addToConsole("Arduino Port: " + port + "\n");
+  addToConsole("Arduino Port: " + ((port!=null)?("OK (" + port + ")"):"NONE") + "\t" + (serialIsConnected?"(CONNECTED)":"(NOT CONNECTED)") + "\n");
   
   return(port);
 }
