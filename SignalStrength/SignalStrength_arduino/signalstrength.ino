@@ -16,9 +16,7 @@ YoYoSettings *settings;
 const int ledPin = 12;
 const int gaguePin = 5;
 
-#if defined(ESP8266)
-
-#elif defined(ESP32)
+#if defined(ESP32)
   const int gagueChannel = 0;
 #endif
 

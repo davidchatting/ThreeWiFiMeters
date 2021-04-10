@@ -16,7 +16,12 @@ YoYoSettings *settings;
 
 Approximate approx;
 
-const int ledPin = 2;
+#if defined(ESP8266)
+  const int ledPin = 2;
+#elif defined(ESP32)
+  const int ledPin = 14;
+#endif
+
 const int motorPinA = 4;
 const int motorPinB = 5;
 #if defined(ESP32)
