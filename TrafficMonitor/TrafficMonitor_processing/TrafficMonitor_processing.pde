@@ -18,6 +18,7 @@ int graphMaxDiameter;
 int graphAxisDiameter;
 
 Serial sniffer;
+String serialPort = null;
 boolean serialIsConnected = false;
 
 HashMap<Integer,String> ouiTable = new HashMap<Integer,String>();
@@ -41,8 +42,6 @@ Observations downloadTraffic = new Observations(cycles * 60 * 1000);
 
 PFont font;
 int textHeightPx = 10;
-
-StringList console = new StringList();
 
 void setup() {
   frameRate(frameRate);
@@ -74,13 +73,13 @@ void setup() {
   loadOuiTable();
   
   try{
-    sniffer = new Serial(this, getArduinoPort(), 115200);
+    serialPort = getArduinoPort();
+    sniffer = new Serial(this, serialPort, 115200);
     sniffer.bufferUntil('\n');
   }
   catch(Exception e) {}
   
   nowMs = (millis()/1000) * 1000;
-  addToConsole("-\n");
 }
 
 void draw() {  
@@ -117,9 +116,8 @@ void drawConsole(int x, int y, int w, int h) {
   stroke(200, 255);
   fill(200, 255);
   String s ="";
-  for(int n = 0; n < console.size(); ++n) {
-    s += console.get(n);
-  }
+  s += ("Arduino Port: " + ((serialPort!=null)?("OK (" + serialPort + ")"):"NONE") + "\t" + (serialIsConnected?"CONNECTED":"NOT CONNECTED") + "\n");
+  s += "-\n";
   
   for (Map.Entry me : devices.entrySet()) {
     Device thisDevice = (Device) me.getValue();
@@ -284,13 +282,11 @@ int getOUI(String macAddress) {
 void loadOuiTable() {
   //http://linuxnet.ca/ieee/oui/nmap-mac-prefixes
   
-  addToConsole("Loading OUI table...\t");
   String[] prefixes = loadStrings("nmap-mac-prefixes");
   for(int n=0; n < prefixes.length; ++n) {
     String[] p = prefixes[n].split("\t");
     ouiTable.put(unhex(p[0]), p[1]);
   }
-  addToConsole("DONE\n");
 }
 
 String getArduinoPort() {
@@ -302,16 +298,10 @@ String getArduinoPort() {
       port = serialList[n];
     }
   }
-  addToConsole("Arduino Port: " + ((port!=null)?("OK (" + port + ")"):"NONE") + "\t" + (serialIsConnected?"(CONNECTED)":"(NOT CONNECTED)") + "\n");
   
   return(port);
 }
 
 boolean looksLikeArduino(String s) {
   return(s.equals("/dev/serial0") || s.startsWith("/dev/tty.usb") || s.equals("/dev/cu.SLAB_USBtoUART") || s.startsWith("/dev/ttyUSB"));
-}
-
-void addToConsole(String line) {
-  print(line);
-  console.append(line);
 }
