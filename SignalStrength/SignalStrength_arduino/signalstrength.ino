@@ -15,6 +15,7 @@ YoYoSettings *settings;
 
 const int ledPin = 12;
 const int gaguePin = 5;
+const int maxGagueValue = 24;
 
 #if defined(ESP32)
   const int gagueChannel = 0;
@@ -29,14 +30,15 @@ void setup() {
   pinMode(ledPin, OUTPUT);
   digitalWrite(ledPin, LOW);
 
+  pinMode(gaguePin, OUTPUT);
   #if defined(ESP32)
     ledcSetup(gagueChannel, 1000, 8);
     ledcAttachPin(gaguePin, gagueChannel);
   #endif
 
-  digitalWrite(gaguePin, HIGH);
+  setGague(255);
   delay(150);
-  digitalWrite(gaguePin, LOW);
+  setGague(0);
   
   settings = new YoYoSettings(512); //Settings must be created here in Setup() as contains call to EEPROM.begin() which will otherwise fail
   wifiManager.init(settings, onceConnected, NULL, NULL, false, 80, -1);
@@ -57,11 +59,11 @@ void loop() {
       break;
     case YY_CONNECTED_PEER_SERVER:
       digitalWrite(ledPin, blink(500));
-      digitalWrite(gaguePin, LOW);
+      setGague(0);
       break;
     default:
       digitalWrite(ledPin, blink(1000));
-      digitalWrite(gaguePin, LOW);
+      setGague(0);
       break;
   }
 }
@@ -73,18 +75,23 @@ bool blink(int periodMs) {
 void displayRSSI() {
   int32_t rssi = getRSSI(WiFi.SSID());
   if(rssi == 0){
-    digitalWrite(gaguePin, LOW);
+    setGague(0);
   }
   else{
     int valueToDisplay = map(rssi, maxRSSI, minRSSI, 255, 0);
     valueToDisplay = min(max(valueToDisplay, 0), 255);
-    
-    #if defined(ESP32)
-      ledcWrite(gagueChannel, valueToDisplay);
-    #else
-      analogWrite(gaguePin, valueToDisplay);
-    #endif
+    setGague(valueToDisplay);
   }
+}
+
+void setGague(int value) {
+  value = map(value, 0, 255, 0, maxGagueValue);
+  
+  #if defined(ESP32)
+    ledcWrite(gagueChannel, value);
+  #else
+    analogWrite(gaguePin, value);
+  #endif
 }
 
 // Return RSSI or 0 if target SSID not found
