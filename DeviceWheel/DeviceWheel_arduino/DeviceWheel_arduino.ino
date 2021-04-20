@@ -22,8 +22,8 @@ Approximate approx;
   const int ledPin = 14;
 #endif
 
-const int motorPinA = 4;
-const int motorPinB = 5;
+const int motorPinA = SDA;
+const int motorPinB = SCL;
 #if defined(ESP32)
   const int motorChannelA = 0;
   const int motorChannelB = 1;
