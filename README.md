@@ -4,10 +4,14 @@ The Three WiFi Meters are three ways of experiencing WiFi networks, each attempt
 
 The meters works with 2.4GHz WiFi networks, but not 5GHz networks - as neither ESP8266 or ESP32 support this technology.
 
-The Three WiFi Meters were created by David Chatting ([@davidchatting](https://twitter.com/davidchatting)) as part of the [A Network of One's Own](http://davidchatting.com/nooo/) project. This code is licensed under the [MIT License](LICENSE.txt).
-
 ## <img src="./images/SignalStrength.svg" height=40px> Signal Strength
+The [Signal Strength meter](SignalStrength)...
 
 ## <img src="./images/DeviceWheel.svg" height=40px> Device Wheel
+The [Device Wheel meter](DeviceWheel)...
 
 ## <img src="./images/TrafficMonitor.svg" height=40px> Traffic Monitor
+The [Traffic Monitor meter](TrafficMonitor)...
+
+## Author
+The Three WiFi Meters were created by David Chatting ([@davidchatting](https://twitter.com/davidchatting)) as part of the [A Network of One's Own](http://davidchatting.com/nooo/) project. This code is licensed under the [MIT License](LICENSE.txt).
