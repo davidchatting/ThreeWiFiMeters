@@ -1,2 +1,2 @@
-<img src="../images/DeviceWheel.svg" height=60px>
+<img src="DeviceWheel-icon.svg" height=60px>
 # Device Wheel
