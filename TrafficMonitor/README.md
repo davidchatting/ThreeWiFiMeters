@@ -7,7 +7,6 @@
 * Wemos D1 mini ESP8266 
 * Raspberry Pi Zero - https://shop.pimoroni.com/products/raspberry-pi-zero-wh-with-pre-soldered-header
 * Waveshare 4 inch Raspberry Pi Display - https://www.waveshare.com/wiki/4inch_RPi_LCD_(A)
-* SPDT Mini Power Switch - https://shop.pimoroni.com/products/spdt-mini-power-switch
 * 3mm blue LED
 * 1K Ohm resistor
 * Micro USB male to Micro USB female charge + data adapter cable
