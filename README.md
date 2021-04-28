@@ -6,14 +6,17 @@ The meters works with 2.4GHz WiFi networks, but not 5GHz networks - as neither E
 
 ## <img src="SignalStrength/SignalStrength-icon.svg" height=40px> Signal Strength
 The [Signal Strength meter](SignalStrength)...
+
 <img src="SignalStrength/SignalStrength-circuit.png" width=600px> 
 
 ## <img src="DeviceWheel/DeviceWheel-icon.svg" height=40px> Device Wheel
 The [Device Wheel meter](DeviceWheel)...
+
 <img src="DeviceWheel/DeviceWheel-circuit.png" width=600px> 
 
 ## <img src="TrafficMonitor/TrafficMonitor-icon.svg" height=40px> Traffic Monitor
 The [Traffic Monitor meter](TrafficMonitor)...
+
 <img src="TrafficMonitor/TrafficMonitor-circuit.png" width=600px> 
 
 ## Author
