@@ -19,6 +19,7 @@ const int ledPin = 16; //DO
 
 List<Device *> activeDevices;
 const int maxActiveDevices = 512;
+char status[32];
 
 void setup() {
   Serial.begin(115200);
@@ -83,7 +84,6 @@ void serialEvent() {
       Device *activeDevice = NULL;
       char macAddress[18];
       
-      char status[32];
       wifiManager.getStatusAsString(status);
 
       if(activeDevices.Count() > 0) {
