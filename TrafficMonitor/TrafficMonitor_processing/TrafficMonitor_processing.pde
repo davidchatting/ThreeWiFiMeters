@@ -272,11 +272,11 @@ void addObservation(String macAddress, int uploadBytes, int downloadBytes) {
     
     thisDevice = new Device();
     thisDevice.macAddress = macAddress;
-    thisDevice.position = allocatePosition(macAddress);
     thisDevice.manufacturer = ouiTable.get(getOUI(macAddress));
     
     if(thisDevice.manufacturer != null && !thisDevice.manufacturer.equals("Espressif")) {
       //Ignore devices without a known manufacturer and other ESP devices
+      thisDevice.position = allocatePosition(macAddress);
       devices.put(macAddress, thisDevice);
     }
   }
