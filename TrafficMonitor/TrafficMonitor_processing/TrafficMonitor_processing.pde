@@ -96,6 +96,9 @@ void draw() {
   
   if(millis() > reconnectDueAtMs) connectSniffer();
   requestObservations();
+}
+
+void serialEvent(Serial port) {
   readObservations();
 }
 
@@ -109,10 +112,6 @@ void connectSniffer() {
   
   delay(1000);
 }
-
-//void serialEvent(Serial port) {
-//  readObservations();
-//}
 
 void requestObservations() {
   if(sniffer != null && millis() > requestObservationsDueAtMs) {
