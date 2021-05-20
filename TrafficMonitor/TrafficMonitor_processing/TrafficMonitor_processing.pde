@@ -19,7 +19,8 @@ int graphAxisDiameter;
 
 Serial sniffer;
 String serialPort = null;
-boolean serialIsConnected = false;
+int reconnectIntervalMs = 10000;
+long reconnectDueAtMs = 0;
 
 HashMap<Integer,String> ouiTable = new HashMap<Integer,String>();
 HashMap<String,Device> devices = new HashMap<String,Device>();
@@ -30,8 +31,8 @@ long nowMs = 0;
 int currentInterval = 0;
 int frameRate = 60;
 
-int updateSampleIntervalMs = 500;
-long updateSampleDueAtMs = 0;
+int requestObservationsIntervalMs = 500;
+long requestObservationsDueAtMs = 0;
 
 int cycles = 3 + 1;
 int samplesPerCycle = 60;
@@ -71,13 +72,7 @@ void setup() {
   textFont(font);
   
   loadOuiTable();
-  
-  try{
-    serialPort = getArduinoPort();
-    sniffer = new Serial(this, serialPort, 115200);
-    sniffer.bufferUntil('\n');
-  }
-  catch(Exception e) {}
+  connectSniffer();
   
   nowMs = (millis()/1000) * 1000;
 }
@@ -99,16 +94,50 @@ void draw() {
   }
   catch(Exception e) {}
   
-  update();
+  if(millis() > reconnectDueAtMs) connectSniffer();
+  requestObservations();
+  readObservations();
 }
 
-void update() {
-  if(sniffer != null && millis() > updateSampleDueAtMs) {
+void connectSniffer() {
+  try {
+    serialPort = getArduinoPort();
+    sniffer = new Serial(this, serialPort, 115200);
+    sniffer.bufferUntil('\n');
+  }
+  catch(Exception e) {}
+  
+  delay(1000);
+}
+
+//void serialEvent(Serial port) {
+//  readObservations();
+//}
+
+void requestObservations() {
+  if(sniffer != null && millis() > requestObservationsDueAtMs) {
     sniffer.write('x');
-    updateSampleDueAtMs = millis() + updateSampleIntervalMs;
+    requestObservationsDueAtMs = millis() + requestObservationsIntervalMs;
     
     uploadTraffic.update();
     downloadTraffic.update();
+  }
+}
+
+void readObservations() {
+  if(sniffer != null) {
+    while(sniffer.available() > 0) {
+      String reading = sniffer.readStringUntil('\n');
+    
+      if (reading != null && reading.startsWith("[aprx]")) {   
+        String s[] = reading.split("\t");  //[aprx]  YY_IDLE_STATUS  54:60:09:E4:B0:BC  2324
+        if(s.length == 5) {
+          addObservation(s[2].trim(), int(s[3].trim()), int(s[4].trim()));
+        }
+        
+        reconnectDueAtMs = millis() + reconnectIntervalMs;
+      }
+    }
   }
 }
 
@@ -116,7 +145,7 @@ void drawConsole(int x, int y, int w, int h) {
   stroke(200, 255);
   fill(200, 255);
   String s ="";
-  s += ("Arduino Port: " + ((serialPort!=null)?("OK (" + serialPort + ")"):"NONE") + "\t" + (serialIsConnected?"CONNECTED":"NOT CONNECTED") + "\n");
+  s += ("Arduino Port: " + ((serialPort!=null)?("OK (" + serialPort + ")"):"NONE") + "\t" + ((millis() < reconnectDueAtMs)?"CONNECTED":"NOT CONNECTED") + "\n");
   s += "-\n";
   
   for (Map.Entry me : devices.entrySet()) {
@@ -235,19 +264,6 @@ float normalise(int v) {
   return(result);
 }
 
-void serialEvent (Serial port) {
-  String reading = port.readStringUntil('\n');
-
-  if (reading != null && reading.startsWith("[aprx]")) {   
-    String s[] = reading.split("\t");  //[aprx]  YY_IDLE_STATUS  54:60:09:E4:B0:BC  2324
-    if(s.length == 5) {
-      addObservation(s[2].trim(), int(s[3].trim()), int(s[4].trim()));
-    }
-    
-    serialIsConnected = true;
-  }
-}
-
 void addObservation(String macAddress, int uploadBytes, int downloadBytes) {    
   long now =  millis();
   Device thisDevice = devices.get(macAddress);
@@ -259,9 +275,9 @@ void addObservation(String macAddress, int uploadBytes, int downloadBytes) {
     thisDevice.position = allocatePosition(macAddress);
     thisDevice.manufacturer = ouiTable.get(getOUI(macAddress));
     
-    //Ignore other ESP devices
-    if(!thisDevice.manufacturer.equals("Espressif")) {
-       devices.put(macAddress, thisDevice);
+    if(thisDevice.manufacturer != null && !thisDevice.manufacturer.equals("Espressif")) {
+      //Ignore devices without a known manufacturer and other ESP devices
+      devices.put(macAddress, thisDevice);
     }
   }
   thisDevice.lastActiveMs = now;
