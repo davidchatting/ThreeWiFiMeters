@@ -18,7 +18,7 @@ Approximate approx;
 const int ledPin = 16; //DO
 
 List<Device *> activeDevices;
-const int maxActiveDevices = 512;
+const int maxActiveDevices = 64;
 char status[32];
 
 void setup() {
@@ -70,12 +70,9 @@ bool blink(int periodMs) {
 }
 
 void onActiveDevice(Device *device, Approximate::DeviceEvent event) {
-  if (activeDevices.Count() >= maxActiveDevices) {
-    Device *activeDevice = activeDevices[0];
-    activeDevices.Remove(0);
-    delete activeDevice;
+  if (activeDevices.Count() <= maxActiveDevices) {
+    activeDevices.Add(new Device(device));
   }
-  activeDevices.Add(new Device(device));
 }
 
 void serialEvent() {
