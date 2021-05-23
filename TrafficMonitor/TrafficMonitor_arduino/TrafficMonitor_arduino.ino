@@ -19,6 +19,7 @@ const int ledPin = 16; //DO
 
 List<Device *> activeDevices;
 const int maxActiveDevices = 64;
+const int minPayloadSizeBytes = 64;
 char status[32];
 
 void setup() {
@@ -31,6 +32,7 @@ void setup() {
   wifiManager.init(settings, onceConnected, NULL, NULL, false, 80, -1);
 
   wifiManager.begin("Home Network Study", "blinkblink");
+  randomSeed(analogRead(0));
 }
 
 void onceConnected() {
@@ -70,8 +72,11 @@ bool blink(int periodMs) {
 }
 
 void onActiveDevice(Device *device, Approximate::DeviceEvent event) {
-  if (activeDevices.Count() <= maxActiveDevices) {
-    activeDevices.Add(new Device(device));
+  int n = activeDevices.Count();
+  if (n <= maxActiveDevices) {
+    if(n == 0 || device -> getPayloadSizeBytes() > minPayloadSizeBytes || random(10) == 0) {
+      activeDevices.Add(new Device(device));
+    }
   }
 }
 
@@ -80,7 +85,7 @@ void serialEvent() {
     if((char)Serial.read() == 'x') {
       Device *activeDevice = NULL;
       char macAddress[18];
-      
+
       wifiManager.getStatusAsString(status);
 
       if(activeDevices.Count() > 0) {
