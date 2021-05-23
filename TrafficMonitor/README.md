@@ -1,7 +1,7 @@
 <img src="TrafficMonitor-icon.svg" height=60px>
 # Traffic Monitor
 
-![display](TrafficMonitor-display.gif)
+<img src="TrafficMonitor-display.gif" height=304px>
 
 <img src="TrafficMonitor-circuit.png" width=600px>
 
