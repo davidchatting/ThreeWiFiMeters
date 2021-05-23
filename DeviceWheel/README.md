@@ -1,8 +1,5 @@
-<img src="DeviceWheel-icon.svg" height=60px>
-
-# Device Wheel
-
-<img src="DeviceWheel-circuit.png" width=600px>
+## <img src="DeviceWheel-icon.svg" height=80px> Device Wheel
+Watch an individual device's use of the network with this Device Wheel.
 
 # Parts
 * Adafruit HUZZAH32 – ESP32 Feather Board - https://www.adafruit.com/product/3405
@@ -13,3 +10,7 @@
 * 1K Ohm resistor
 * LiPo Battery Pack 3.7V 500mAh - https://shop.pimoroni.com/products/lipo-battery-pack?variant=20429082055
 * Micro USB male to Micro USB female charge + data adapter cable
+
+<img src="DeviceWheel-circuit.png" width=600px>
+
+The circuit shows an Adafruit HUZZAH32, but the code will compile for any ESP8266 or ESP32 (pin assignments will need to change of course).

@@ -1,9 +1,7 @@
-<img src="TrafficMonitor-icon.svg" height=60px>
-# Traffic Monitor
+## <img src="TrafficMonitor/TrafficMonitor-icon.svg" height=80px> Traffic Monitor
+See the traffic on your home WiFi network with this Traffic Monitor.
 
 <img src="TrafficMonitor-display.gif" height=304px>
-
-<img src="TrafficMonitor-circuit.png" width=600px>
 
 # Parts
 * Wemos D1 mini ESP8266 
@@ -12,5 +10,9 @@
 * 3mm blue LED
 * 1K Ohm resistor
 * Micro USB male to Micro USB female charge + data adapter cable
+
+<img src="TrafficMonitor-circuit.png" width=600px>
+
+The circuit shows a Wemos D1 mini ESP8266, but the code will compile for any ESP8266 or ESP32 (pin assignments will need to change of course).
 
 https://github.com/gohai/processing-uploadtopi
