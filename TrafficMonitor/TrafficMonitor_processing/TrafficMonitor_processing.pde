@@ -29,7 +29,7 @@ boolean positionAllocation[] = new boolean[60];
 
 long nowMs = 0;
 int currentInterval = 0;
-int frameRate = 60;
+int frameRate = 12;
 
 int requestObservationsIntervalMs = 500;
 long requestObservationsDueAtMs = 0;
