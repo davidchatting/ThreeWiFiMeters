@@ -42,8 +42,11 @@ int interval;
 Observations uploadTraffic = new Observations(cycles * 60 * 1000);
 Observations downloadTraffic = new Observations(cycles * 60 * 1000);
 
+int flashThresholdMs = (int) (1000 * 0.3f);
+
 PFont font;
 int textHeightPx = 10;
+int consoleLineNumber = 1;
 
 void setup() {
   frameRate(frameRate);
@@ -147,19 +150,31 @@ void readObservations() {
 void drawConsole(int x, int y, int w, int h) {
   stroke(200, 255);
   fill(200, 255);
-  String s ="";
-  s += ("Arduino Port: " + ((serialPort!=null)?("OK (" + serialPort + ")"):"NONE") + "\t" + ((millis() < reconnectDueAtMs)?"CONNECTED":"NOT CONNECTED") + "\n");
-  s += "-\n";
+  
+  resetConsoleLine();
+  drawConsoleLine(x, y, w, h, "Arduino Port: " + ((serialPort!=null)?("OK (" + serialPort + ")"):"NONE") + "\t" + ((millis() < reconnectDueAtMs)?"CONNECTED":"NOT CONNECTED"));
+  drawConsoleLine(x, y, w, h, "-");
 
   for (Map.Entry me : devices.entrySet()) {
     Device thisDevice = (Device) me.getValue();
 
     if (thisDevice.manufacturer != null && thisDevice.lastActiveMs > (millis() - 60000)) {
-      s += (thisDevice.macAddress + "  " + thisDevice.manufacturer + "\n");
+      fill(200);
+      if (thisDevice.lastActiveMs > (millis() - flashThresholdMs)) {
+        fill(255);
+      }
+      drawConsoleLine(x, y, w, h, (thisDevice.macAddress + "  " + thisDevice.manufacturer));
     }
   }
+}
 
-  text(s, x + 10, y + textHeightPx);
+void drawConsoleLine(int x, int y, int w, int h, String s) {
+  text(s, x + 10, y + ((textHeightPx + 2) * consoleLineNumber));
+  consoleLineNumber++;
+}
+
+void resetConsoleLine() {
+  consoleLineNumber = 1;
 }
 
 void updateTicks() {
@@ -236,7 +251,7 @@ void drawDevices(int cx, int cy) {
       int y = cy + (int)(devicesRingRadius * cos(a));
 
       stroke(255);
-      if (thisDevice.lastActiveMs > (millis() - (1000 * 0.3f))) {
+      if (thisDevice.lastActiveMs > (millis() - flashThresholdMs)) {
         fill(255);
       } else noFill();
       circle(x, y, 8);
