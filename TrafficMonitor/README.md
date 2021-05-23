@@ -1,7 +1,9 @@
 <img src="TrafficMonitor-icon.svg" height=60px>
 # Traffic Monitor
 
-<img src="TrafficMonitor-circuit.png" width=600px> 
+![display](TrafficMonitor-display.gif)
+
+<img src="TrafficMonitor-circuit.png" width=600px>
 
 # Parts
 * Wemos D1 mini ESP8266 
