@@ -1,7 +1,7 @@
-## <img src="DeviceWheel-icon.svg" height=80px> Device Wheel
+# <img src="DeviceWheel-icon.svg" height=80px> Device Wheel
 Watch an individual device's use of the network with this Device Wheel.
 
-# Hardware
+## Hardware
 * Adafruit HUZZAH32 – ESP32 Feather Board - https://www.adafruit.com/product/3405
 * 3800 RPM 1.5mm Diameter Shaft 2V DC Motor for Walkman
 * 1.5A Mini Speed Control Dual Channel Motor Driver MX1508
@@ -15,7 +15,7 @@ Watch an individual device's use of the network with this Device Wheel.
 
 The circuit shows an Adafruit HUZZAH32, but the code will compile for any ESP8266 or ESP32 (pin assignments will need to change of course).
 
-# Software
+## Software
 The Arduino core for the ESP8266 or ESP32 must be installed:
 * ESP8266 - https://github.com/esp8266/Arduino#installing-with-boards-manager
 * ESP32 - https://github.com/espressif/arduino-esp32/blob/master/docs/arduino-ide/boards_manager.md

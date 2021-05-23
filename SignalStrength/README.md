@@ -1,7 +1,7 @@
-## <img src="SignalStrength-icon.svg" height=80px> Signal Strength
+# <img src="SignalStrength-icon.svg" height=80px> Signal Strength
 Measure the signal strength of your router around the house with this Signal Strength Meter.
 
-# Hardware
+## Hardware
 * Adafruit HUZZAH32 – ESP32 Feather Board - https://www.adafruit.com/product/3405
 * Eisco 0-30V Single Range Moving Coil Voltmeter - https://www.rapidonline.com/eisco-0-30v-single-range-moving-coil-voltmeter-52-3502 (series resistor needs to be removed)
 * SPDT Mini Power Switch - https://shop.pimoroni.com/products/spdt-mini-power-switch
@@ -14,7 +14,7 @@ Measure the signal strength of your router around the house with this Signal Str
 
 The circuit shows an Adafruit HUZZAH32, but the code will compile for any ESP8266 or ESP32 (pin assignments will need to change of course).
 
-# Software
+## Software
 The Arduino core for the ESP8266 or ESP32 must be installed:
 * ESP8266 - https://github.com/esp8266/Arduino#installing-with-boards-manager
 * ESP32 - https://github.com/espressif/arduino-esp32/blob/master/docs/arduino-ide/boards_manager.md
