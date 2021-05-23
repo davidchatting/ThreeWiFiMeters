@@ -29,4 +29,4 @@ And following Arduino libraries are required:
 * ListLib - https://github.com/luisllamasbinaburo/Arduino-List
 
 ### Processing
-The visulisation code is built for [Processing 3](https://processing.org/) from a desktop this can be easily uploaded to the Raspberry Pi using the [Upload to Pi Tool](https://github.com/gohai/processing-uploadtopi). Alternatively, if the ESP8266 is attached to the desktop machine via USB then it can be run there instead - for some platforms other than MacOS that might need some modifcation of ```looksLikeArduino()``` in the sketch.
+The visulisation code is built for [Processing 3](https://processing.org/) from a desktop this can be easily uploaded to the Raspberry Pi using the [Upload to Pi Tool](https://github.com/gohai/processing-uploadtopi). Alternatively, if the ESP8266 is attached to a desktop machine via USB then it can be run there instead - for platforms other than MacOS that might need some modifcation of ```looksLikeArduino()``` in the sketch.
