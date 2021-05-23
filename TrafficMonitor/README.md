@@ -1,4 +1,4 @@
-## <img src="TrafficMonitor/TrafficMonitor-icon.svg" height=80px> Traffic Monitor
+## <img src="TrafficMonitor-icon.svg" height=80px> Traffic Monitor
 See the traffic on your home WiFi network with this Traffic Monitor.
 
 <img src="TrafficMonitor-display.gif" height=304px>
