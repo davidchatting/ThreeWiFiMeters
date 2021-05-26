@@ -158,7 +158,7 @@ void drawConsole(int x, int y, int w, int h) {
   for (Map.Entry me : devices.entrySet()) {
     Device thisDevice = (Device) me.getValue();
 
-    if (thisDevice.manufacturer != null && thisDevice.lastActiveMs > (millis() - 60000)) {
+    if (thisDevice.manufacturer != null && !thisDevice.manufacturer.equals("Espressif") && thisDevice.lastActiveMs > (millis() - 60000)) {
       fill(200);
       if (thisDevice.lastActiveMs > (millis() - flashThresholdMs)) {
         fill(255);
@@ -285,21 +285,17 @@ float normalise(int v) {
   return(result);
 }
 
-void addObservation(String macAddress, int uploadBytes, int downloadBytes) {    
+void addObservation(String macAddress, int uploadBytes, int downloadBytes) {
   long now =  millis();
   Device thisDevice = devices.get(macAddress);
   if (thisDevice == null) {
-    byte mostSigByte = (byte) unhex(macAddress.split(":")[0]);
-
     thisDevice = new Device();
     thisDevice.macAddress = macAddress;
     thisDevice.manufacturer = ouiTable.get(getOUI(macAddress));
-
-    if (thisDevice.manufacturer != null && !thisDevice.manufacturer.equals("Espressif")) {
-      //Ignore devices without a known manufacturer and other ESP devices
-      thisDevice.position = allocatePosition(macAddress);
-      devices.put(macAddress, thisDevice);
-    }
+    
+    //Ignore devices without a known manufacturer and other ESP devices
+    thisDevice.position = allocatePosition(macAddress);
+    devices.put(macAddress, thisDevice);
   }
   thisDevice.lastActiveMs = now;
 
