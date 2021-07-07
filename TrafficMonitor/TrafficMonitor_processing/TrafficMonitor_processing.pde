@@ -286,6 +286,8 @@ float normalise(int v) {
 }
 
 void addObservation(String macAddress, int uploadBytes, int downloadBytes) {
+  if(!acceptPacket(macAddress)) return;
+  
   long now =  millis();
   Device thisDevice = devices.get(macAddress);
   if (thisDevice == null) {
@@ -301,6 +303,15 @@ void addObservation(String macAddress, int uploadBytes, int downloadBytes) {
 
   uploadTraffic.add(uploadBytes, now);
   downloadTraffic.add(downloadBytes, now);
+}
+
+boolean acceptPacket(String macAddress) {
+  boolean result = true;
+  
+  result = result && !macAddress.endsWith("00:00:00");  //group address
+  result = result && !macAddress.equals("FF:FF:FF:FF:FF:FF");  //broadcast address
+  
+  return(result);
 }
 
 int getOUI(String macAddress) {
