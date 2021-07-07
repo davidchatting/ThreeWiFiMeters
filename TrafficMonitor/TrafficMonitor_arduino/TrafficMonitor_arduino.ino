@@ -38,7 +38,7 @@ void setup() {
 void onceConnected() {
   wifiManager.end();
   
-  if (approx.init(false, false, false)) {
+  if (approx.init("", "", false, false, false)) {
     approx.setActiveDeviceHandler(onActiveDevice);
     approx.begin();
   }
