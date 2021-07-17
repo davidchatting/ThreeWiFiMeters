@@ -72,7 +72,7 @@ void setup() {
   consoleWidth = width;
   consoleHeight = cy - (portalDiameter/2);
 
-  font = createFont("Helvetica", textHeightPx);
+  font = createFont("Courier", textHeightPx);
   textFont(font);
 
   loadOuiTable();
