@@ -83,14 +83,13 @@ void onActiveDevice(Device *device, Approximate::DeviceEvent event) {
 void serialEvent() {
   while (Serial.available()) {
     if((char)Serial.read() == 'x') {
-      Device *activeDevice = NULL;
-      char macAddress[18];
-
       wifiManager.getStatusAsString(status);
 
       if(activeDevices.Count() > 0) {
+        char macAddress[18];
+ 
         while (activeDevices.Count() > 0) {
-          activeDevice = activeDevices[0];
+          Device *activeDevice = activeDevices[0];
           
           Serial.printf("[aprx]\t%s\t%s\t%i\t%i\n", status, activeDevice->getMacAddressAs_c_str(macAddress), activeDevice->getUploadSizeBytes(), activeDevice->getDownloadSizeBytes());
           activeDevices.Remove(0);
