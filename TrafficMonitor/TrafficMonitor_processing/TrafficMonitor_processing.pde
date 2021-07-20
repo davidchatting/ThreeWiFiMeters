@@ -170,8 +170,12 @@ void drawConsole(int x, int y, int w, int h) {
 }
 
 void drawConsoleLine(int x, int y, int w, int h, String s) {
-  text(s, x + 10, y + ((textHeightPx + 2) * consoleLineNumber));
-  consoleLineNumber++;
+  int maxConsoleLineNumber = (int)(h/(textHeightPx*1.2f));
+  
+  if(consoleLineNumber < maxConsoleLineNumber) {
+    text(s, x + 10, y + ((textHeightPx + 2) * consoleLineNumber));
+    consoleLineNumber++;
+  }
 }
 
 void resetConsoleLine() {
