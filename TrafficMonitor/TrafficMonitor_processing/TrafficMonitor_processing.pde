@@ -135,7 +135,8 @@ void readObservations() {
     while (sniffer.available() > 0) {
       String reading = sniffer.readStringUntil('\n');
 
-      if (reading != null && reading.startsWith("[aprx]")) {   
+      if (reading != null && reading.startsWith("[aprx]")) {
+        
         String s[] = reading.split("\t");  //[aprx]  YY_IDLE_STATUS  54:60:09:E4:B0:BC  2324
         if (s.length == 5) {
           addObservation(s[2].trim(), int(s[3].trim()), int(s[4].trim()));
@@ -152,18 +153,18 @@ void drawConsole(int x, int y, int w, int h) {
   fill(200, 255);
   
   resetConsoleLine();
-  drawConsoleLine(x, y, w, h, "Arduino Port: " + ((serialPort!=null)?("OK (" + serialPort + ")"):"NONE") + "\t" + ((millis() < reconnectDueAtMs)?"CONNECTED":"NOT CONNECTED"));
+  drawConsoleLine(x, y, w, h, ((millis() < reconnectDueAtMs)?"CONNECTED":"NOT CONNECTED") + "\t(" + ((serialPort!=null)?(serialPort):"NONE") + ")");
   drawConsoleLine(x, y, w, h, "-");
 
   for (Map.Entry me : devices.entrySet()) {
     Device thisDevice = (Device) me.getValue();
 
-    if (thisDevice.manufacturer != null && !thisDevice.manufacturer.equals("Espressif") && thisDevice.lastActiveMs > (millis() - 60000)) {
+    if ((thisDevice.manufacturer == null || !thisDevice.manufacturer.equals("Espressif")) && thisDevice.lastActiveMs > (millis() - 60000)) {
       fill(200);
       if (thisDevice.lastActiveMs > (millis() - flashThresholdMs)) {
         fill(255);
       }
-      drawConsoleLine(x, y, w, h, (thisDevice.macAddress + "  " + thisDevice.manufacturer));
+      drawConsoleLine(x, y, w, h, thisDevice.macAddress + ((thisDevice.manufacturer == null) ? "" : "\t" + thisDevice.manufacturer));
     }
   }
 }
@@ -308,8 +309,11 @@ void addObservation(String macAddress, int uploadBytes, int downloadBytes) {
 boolean acceptPacket(String macAddress) {
   boolean result = true;
   
-  result = result && !macAddress.endsWith("00:00:00");  //group address
+  result = result && !macAddress.endsWith("00:00:00");         //group address
   result = result && !macAddress.equals("FF:FF:FF:FF:FF:FF");  //broadcast address
+  result = result && !macAddress.startsWith("01:00:5E");       //IPv4 multicast address
+  result = result && !macAddress.startsWith("33:33");          //IPv6 multicast address
+  result = result && !macAddress.startsWith("01:80:C2");       //Bridge address
   
   return(result);
 }
@@ -328,8 +332,10 @@ void loadOuiTable() {
 
   String[] prefixes = loadStrings("nmap-mac-prefixes");
   for (int n=0; n < prefixes.length; ++n) {
-    String[] p = prefixes[n].split("\t");
-    ouiTable.put(unhex(p[0]), p[1]);
+    if(!prefixes[n].startsWith("#")) {
+      String[] p = prefixes[n].split("\t");
+      ouiTable.put(unhex(p[0]), p[1]);
+    }
   }
 }
 
