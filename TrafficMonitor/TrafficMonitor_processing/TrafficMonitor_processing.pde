@@ -162,7 +162,7 @@ void drawConsole(int x, int y, int w, int h) {
   for (Map.Entry me : devices.entrySet()) {
     Device thisDevice = (Device) me.getValue();
 
-    if (isDevice(thisDevice.macAddress) && (thisDevice.manufacturer == null || !thisDevice.manufacturer.equals("Espressif")) && thisDevice.lastActiveMs > (millis() - 60000)) {
+    if (isDevice(thisDevice.macAddress) && (thisDevice.manufacturer == null || thisDevice.lastActiveMs > (millis() - 60000))) {
       fill(200);
       if (thisDevice.lastActiveMs > (millis() - flashThresholdMs)) {
         fill(255);
