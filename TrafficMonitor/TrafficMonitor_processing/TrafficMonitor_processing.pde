@@ -48,6 +48,8 @@ PFont font;
 int textHeightPx = 10;
 int consoleLineNumber = 1;
 
+String currentStatus = "YY_DISCONNECTED";
+
 void setup() {
   frameRate(frameRate);
   noCursor();
@@ -139,6 +141,7 @@ void readObservations() {
         
         String s[] = reading.split("\t");  //[aprx]  YY_IDLE_STATUS  54:60:09:E4:B0:BC  2324
         if (s.length == 5) {
+          currentStatus = s[1].trim();
           addObservation(s[2].trim(), int(s[3].trim()), int(s[4].trim()));
         }
 
@@ -159,12 +162,12 @@ void drawConsole(int x, int y, int w, int h) {
   for (Map.Entry me : devices.entrySet()) {
     Device thisDevice = (Device) me.getValue();
 
-    if ((thisDevice.manufacturer == null || !thisDevice.manufacturer.equals("Espressif")) && thisDevice.lastActiveMs > (millis() - 60000)) {
+    if (isDevice(thisDevice.macAddress) && (thisDevice.manufacturer == null || !thisDevice.manufacturer.equals("Espressif")) && thisDevice.lastActiveMs > (millis() - 60000)) {
       fill(200);
       if (thisDevice.lastActiveMs > (millis() - flashThresholdMs)) {
         fill(255);
       }
-      drawConsoleLine(x, y, w, h, thisDevice.macAddress + ((thisDevice.manufacturer == null) ? "" : "\t" + thisDevice.manufacturer));
+      drawConsoleLine(x, y, w, h, thisDevice.macAddress + ((thisDevice.manufacturer == null) ? "" : "  " + thisDevice.manufacturer));
     }
   }
 }
@@ -250,7 +253,7 @@ void drawDevices(int cx, int cy) {
   for (Map.Entry me : devices.entrySet()) {
     Device thisDevice = (Device) me.getValue();
 
-    if (thisDevice.manufacturer != null && thisDevice.lastActiveMs > (millis() - 60000)) {
+    if (isDevice(thisDevice.macAddress) && thisDevice.lastActiveMs > (millis() - 60000)) {
       float a = map(thisDevice.position, 0, 60, 0, TWO_PI);
       int x = cx + (int)(devicesRingRadius * sin(a));
       int y = cy + (int)(devicesRingRadius * cos(a));
@@ -265,15 +268,17 @@ void drawDevices(int cx, int cy) {
 }
 
 int allocatePosition(String macAddress) {
-  int position = 0;
+  int position = -1;
 
-  String bytes[] = macAddress.split(":");
-  position = (int)map(unhex(bytes[5]), 0, 255, 0, 59);
-
-  while (positionAllocation[position]) {
-    position = (position + 1) % 60;
+  if(isDevice(macAddress)){
+    String bytes[] = macAddress.split(":");
+    position = (int)map(unhex(bytes[5]), 0, 255, 0, 59);
+  
+    while (positionAllocation[position]) {
+      position = (position + 1) % 60;
+    }
+    positionAllocation[position] = true;
   }
-  positionAllocation[position] = true;
 
   return(position);
 }
@@ -291,8 +296,6 @@ float normalise(int v) {
 }
 
 void addObservation(String macAddress, int uploadBytes, int downloadBytes) {
-  if(!acceptPacket(macAddress)) return;
-  
   long now =  millis();
   Device thisDevice = devices.get(macAddress);
   if (thisDevice == null) {
@@ -310,7 +313,7 @@ void addObservation(String macAddress, int uploadBytes, int downloadBytes) {
   downloadTraffic.add(downloadBytes, now);
 }
 
-boolean acceptPacket(String macAddress) {
+boolean isDevice(String macAddress) {
   boolean result = true;
   
   result = result && !macAddress.endsWith("00:00:00");         //group address
