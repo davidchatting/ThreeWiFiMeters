@@ -100,6 +100,7 @@ void draw() {
     drawSpiral(cx, cy, graphMaxDiameter);
   }
   catch(Exception e) {
+    println(e);
   }
 
   if (millis() > reconnectDueAtMs) connectSniffer();
@@ -140,8 +141,11 @@ void readObservations() {
       if (reading != null && reading.startsWith("[aprx]")) {
         
         String s[] = reading.split("\t");  //[aprx]  YY_IDLE_STATUS  54:60:09:E4:B0:BC  2324
-        if (s.length == 5) {
+        if (s.length == 2 || s.length == 5) {
           currentStatus = s[1].trim();
+        }
+        
+        if (s.length == 5) {
           addObservation(s[2].trim(), int(s[3].trim()), int(s[4].trim()));
         }
 
@@ -154,6 +158,7 @@ void readObservations() {
 void drawConsole(int x, int y, int w, int h) {
   stroke(200, 255);
   fill(200, 255);
+  textAlign(LEFT);
   
   resetConsoleLine();
   drawConsoleLine(x, y, w, h, ((millis() < reconnectDueAtMs)?"CONNECTED":"NOT CONNECTED") + "\t(" + ((serialPort!=null)?(serialPort):"NONE") + ")");
@@ -212,9 +217,9 @@ void drawSpiral(int cx, int cy, int diameter) {
   float da = (TWO_PI/samplesPerCycle);
 
   float r = 0;
-  float step=(diameter/2.0f)/(samplesPerCycle * (cycles +1));
+  float step=(diameter/2.0f)/(samplesPerCycle * (cycles + 1));
 
-  for (int n = 0; n <= (samplesPerCycle * cycles); n++ ) {
+  for (int n = 0; n < (samplesPerCycle * (cycles - 1)); n++ ) {
     int i = (samplesPerCycle * cycles) - n;
 
     r = i * step;
@@ -227,11 +232,18 @@ void drawSpiral(int cx, int cy, int diameter) {
 
     color c = color(0); 
     float v = ticks[n];
+    
     if (n == 0) c = color(255, 0, 0);
     else {
       c = color((v == 0.0f)? 20 : 255);
     }
     drawTick(cx + x, cy + y, a, v, c);
+  }
+  
+  if(!currentStatus.equals("YY_CONNECTED")) {
+    fill(255);
+    textAlign(CENTER, CENTER);
+    text("CONFIGURE WIFI AT:\nHome Network Study\n-\nblinkblink", cx, cy);
   }
 }
 
@@ -288,7 +300,7 @@ float normalise(int v) {
 
   if (v > 0) {
     //approximation of the sigmoid function:
-    result = map(v, 0, 2048, -6.0f, 6.0f);
+    result = map(v, 0, 8192, -6.0f, 6.0f);
     result = map(result / (1.0f + abs(result)), -1.0f, 1.0f, 0.0f, 1.0f);
   }
 
