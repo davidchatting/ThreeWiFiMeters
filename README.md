@@ -1,6 +1,6 @@
 # Three WiFi Meters
 
-<img src="images/hero.gif" width=720px/>
+<img src="images/hero-sm.gif" width=720px/>
 
 The Three WiFi Meters are three ways of experiencing WiFi networks, each attempts to disclose properties of this near ubiquitous technology. They are built for the [ESP8266](https://en.wikipedia.org/wiki/ESP8266) or [ESP32](https://en.wikipedia.org/wiki/ESP32) using the [Approximate](https://github.com/davidchatting/Approximate) and [YoYoWiFiManager](https://github.com/interactionresearchstudio/YoYoWiFiManager) Arduino libraries.
 
