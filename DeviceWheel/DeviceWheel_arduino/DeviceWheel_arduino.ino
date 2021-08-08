@@ -60,6 +60,9 @@ void setup() {
 //  const char *macAddress = (*settings)["pair"];
 //  if(macAddress) setPair(macAddress);
 
+  //Attempt to connect to a WiFi network previously saved in the settings, 
+  //if one can not be found start a captive portal called "YoYoMachines", 
+  //with a password of "blinkblink" to configure a new one:
   wifiManager.begin("Home Network Study", "blinkblink");
 }
 

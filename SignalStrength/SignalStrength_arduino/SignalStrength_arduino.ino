@@ -43,6 +43,9 @@ void setup() {
   settings = new YoYoSettings(512); //Settings must be created here in Setup() as contains call to EEPROM.begin() which will otherwise fail
   wifiManager.init(settings, onceConnected, NULL, NULL, false, 80, -1);
 
+  //Attempt to connect to a WiFi network previously saved in the settings, 
+  //if one can not be found start a captive portal called "YoYoMachines", 
+  //with a password of "blinkblink" to configure a new one:
   wifiManager.begin("Home Network Study", "blinkblink");
 }
 
