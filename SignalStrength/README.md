@@ -30,3 +30,6 @@ And following Arduino libraries are required:
 * ListLib - https://github.com/luisllamasbinaburo/Arduino-List
 
 From the *Tools* menu then select either `Generic ESP822 Module` or `ESP32 Dev Module` and then for the ESP8266 select `4MB (FS:3MB OTA:~512KB)` for *Flash Size* and for the ESP32 select a *Partition Scheme* of `Default 4MB with spiffs (1.2MB APP/1.5MB SPIFFS)` - assuming a *Flash Size* of 4MB. Then upload the associated `data` folder using the uploader tool - also found under the *Tools* menu. The data folder contains the HTML, JavaScript and image files for the captive portal that configures the WiFi. If you don't upload the data folder the portal will say, *Yo Yo Machines default HTML*.
+
+## WiFi Set-up
+The WiFi is configured by joining the *Home Network Study* network with the password *blinkblink* and entering the details of your network. If multiple meters are started once they will automaically discover each other and the set-up will shared between them. This is enabled by the [YoYoWiFiManager](https://github.com/interactionresearchstudio/YoYoWiFiManager).

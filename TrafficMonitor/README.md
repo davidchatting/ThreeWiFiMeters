@@ -36,3 +36,6 @@ From the *Tools* menu then select either `Generic ESP822 Module` or `ESP32 Dev M
 
 ### Processing
 The visulisation code is built for [Processing 3](https://processing.org/) from a desktop this can be easily uploaded to the Raspberry Pi using the [Upload to Pi Tool](https://github.com/gohai/processing-uploadtopi). Alternatively, if the ESP8266 is attached to a desktop machine via USB then it can be run there instead - for platforms other than MacOS that might need some modifcation of ```looksLikeArduino()``` in the sketch.
+
+## WiFi Set-up
+The WiFi is configured by joining the *Home Network Study* network with the password *blinkblink* and entering the details of your network. If multiple meters are started once they will automaically discover each other and the set-up will shared between them. This is enabled by the [YoYoWiFiManager](https://github.com/interactionresearchstudio/YoYoWiFiManager).
