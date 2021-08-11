@@ -34,3 +34,6 @@ From the *Tools* menu then select either `Generic ESP822 Module` or `ESP32 Dev M
 
 ## WiFi Set-up
 The WiFi is configured by joining the *Home Network Study* network with the password *blinkblink* and entering the details of your network. If multiple meters are started once they will automaically discover each other and the set-up will shared between them. This is enabled by the [YoYoWiFiManager](https://github.com/interactionresearchstudio/YoYoWiFiManager).
+
+## Author
+The Three WiFi Meters were created by David Chatting ([@davidchatting](https://twitter.com/davidchatting)) as part of the [A Network of One's Own](http://davidchatting.com/nooo/) project. This code is licensed under the [MIT License](LICENSE.txt).
