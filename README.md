@@ -14,7 +14,7 @@ Watch an individual device's use of the network with the [Device Wheel](DeviceWh
 See the traffic on your home WiFi network with the [Traffic Monitor](TrafficMonitor).
 
 ## Limitations
-The meters works with 2.4GHz WiFi networks, but not 5GHz networks - as neither ESP8266 or ESP32 support this technology.
+The meters work with 2.4GHz WiFi networks, but not 5GHz networks - as neither ESP8266 or ESP32 support this technology.
 
 ## A Little History
 The Three WiFi Meters are inspired by multiple sources, not least Natalie Jeremijenko's Live Wire (also known as Dangling String) [(Weiser and Brown, 1995)](https://web.archive.org/web/19970624041814/http://www.powergrid.com/1.01/calmtech.html) and the Tangible Media Group's Pinwheels [(Dahley, Wisneski and Ishii, 1998)](https://tangible.media.mit.edu/project/pinwheels/).
