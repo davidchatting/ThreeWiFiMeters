@@ -69,7 +69,7 @@ void setup() {
 void onceConnected() {
   wifiManager.end();
   
-  if (approx.init()) {
+  if (approx.init("","")) {
     approx.setProximateDeviceHandler(onProximateDevice, APPROXIMATE_INTIMATE_RSSI, /*lastSeenTimeoutMs*/ 3000);
     approx.setActiveDeviceHandler(onActiveDevice, /*inclusive*/ false);
     approx.begin();
@@ -90,12 +90,12 @@ void loop() {
     }
   }
   else {
-    switch(wifiStatus) {
-      case YY_CONNECTED_PEER_SERVER:
-        digitalWrite(ledPin, blink(500));
-        break;
-      default:
+    switch(wifiManager.currentMode) {
+      case YoYoWiFiManager::YY_MODE_PEER_CLIENT:
         digitalWrite(ledPin, blink(1000));
+        break;
+      default:  //YY_MODE_PEER_SERVER
+        digitalWrite(ledPin, blink(500));
         break;
     }
   }
