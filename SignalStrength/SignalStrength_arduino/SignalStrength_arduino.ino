@@ -15,7 +15,7 @@ YoYoSettings *settings;
 
 const int ledPin = 12;
 const int gaguePin = 5;
-const int maxGagueValue = 24;
+const int maxGagueValue = 255;
 
 #if defined(ESP32)
   const int gagueChannel = 0;
@@ -55,19 +55,20 @@ void onceConnected() {
 void loop() {
   uint8_t wifiStatus = wifiManager.loop();
 
-  switch(wifiStatus) {
-    case YY_CONNECTED:
-      digitalWrite(ledPin, HIGH);
-      displayRSSI();
-      break;
-    case YY_CONNECTED_PEER_SERVER:
-      digitalWrite(ledPin, blink(500));
-      setGague(0);
-      break;
-    default:
-      digitalWrite(ledPin, blink(1000));
-      setGague(0);
-      break;
+  if(wifiStatus == YY_CONNECTED) {
+    digitalWrite(ledPin, HIGH);
+    displayRSSI();
+  }
+  else {
+    switch(wifiManager.currentMode) {
+      case YoYoWiFiManager::YY_MODE_PEER_CLIENT:
+        digitalWrite(ledPin, blink(1000));
+        break;
+      default:  //YY_MODE_PEER_SERVER
+        digitalWrite(ledPin, blink(500));
+        break;
+    }
+    setGague(0);
   }
 }
 
