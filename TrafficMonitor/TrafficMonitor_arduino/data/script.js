@@ -121,12 +121,11 @@ function onSaveButtonClicked(event) {
         password: $('#password').val()
     };
 
-    //NB dataType is 'text' otherwise json validation fails on Safari
-    $.ajax({
+    var request = {
         type: "POST",
         url: "/yoyo/credentials",
         data: JSON.stringify(data),
-        dataType: 'text',
+        dataType: 'json',
         contentType: 'application/json; charset=utf-8',
         cache: false,
         timeout: 15000,
@@ -148,5 +147,12 @@ function onSaveButtonClicked(event) {
             $('#alert-text').addClass('alert-danger');
             $('#alert-text').text('Couldn\'t Save');
         }
-    });
+    }
+
+    //json validation fails on Safari - but if defaults to text then fails on Windows/Android
+    if (navigator.userAgent.indexOf('Safari') != -1 && navigator.userAgent.indexOf('Chrome') == -1 && navigator.userAgent.indexOf('Chromium') == -1) {
+        request.dataType = 'text';
+    }
+
+    $.ajax(request);
 }
