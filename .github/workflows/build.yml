@@ -34,7 +34,7 @@ jobs:
         args: -O oui.txt https://standards-oui.ieee.org/oui/oui.txt
 
       - name: SignalStrength
-      run: echo Build SignalStrength
+        run: echo Build SignalStrength
 
       - name: TrafficMonitor
-      run: echo Build TrafficMonitor
+        run: echo Build TrafficMonitor
