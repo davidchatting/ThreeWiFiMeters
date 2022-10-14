@@ -28,6 +28,11 @@ jobs:
       - name: DeviceWheel
         run: echo Build DeviceWheel
 
+      - name: wget
+      uses: wei/wget@v1
+      with:
+        args: -O oui.txt https://standards-oui.ieee.org/oui/oui.txt
+
       - name: SignalStrength
       run: echo Build SignalStrength
 
