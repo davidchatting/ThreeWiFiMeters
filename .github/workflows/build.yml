@@ -29,7 +29,7 @@ jobs:
         run: echo Build DeviceWheel
 
       - name: SignalStrength
-      run: echo Build SignalStrength
+        run: echo Build SignalStrength
 
       - name: TrafficMonitor
-      run: echo Build TrafficMonitor
+        run: echo Build TrafficMonitor
