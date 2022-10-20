@@ -31,6 +31,11 @@ jobs:
       - name: wget
         uses: wei/wget@v1
         with:
+          args: -O david_chatting.jpg http://davidchatting.com/profile/david_chatting.jpg
+
+      - name: wget
+        uses: wei/wget@v1
+        with:
           args: -O oui.txt https://standards-oui.ieee.org/oui/oui.txt
 
       - name: SignalStrength
