@@ -30,6 +30,12 @@ jobs:
 
       - name: wget
         run: wget -O oui.txt https://standards-oui.ieee.org/oui/oui.txt
+        
+      - name: Set up perl
+        uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: ${{ matrix.perl }}
+        run: perl -V
 
       - name: SignalStrength
         run: echo Build SignalStrength
