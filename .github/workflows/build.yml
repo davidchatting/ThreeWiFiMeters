@@ -35,7 +35,7 @@ jobs:
         uses: shogo82148/actions-setup-perl@v1
         with:
           perl-version: ${{ matrix.perl }}
-        run: perl -V
+      - run: perl -V
 
       - name: SignalStrength
         run: echo Build SignalStrength
